@@ -128,6 +128,12 @@ function pluralYears(n) {
   if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return "года";
   return "лет";
 }
+function pluralTimes(n) {
+  var m10 = Math.abs(n) % 10, m100 = Math.abs(n) % 100;
+  if (m10 === 1 && m100 !== 11) return "раз";
+  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return "раза";
+  return "раз";
+}
 function randomPhrase() { return MOTIVATION_PHRASES[Math.floor(Math.random() * MOTIVATION_PHRASES.length)]; }
 
 function isMath(s) { return String(s || "").trim().toLowerCase() === MATH_SUBJECT.toLowerCase(); }
@@ -204,7 +210,6 @@ function initTheme() {
   else applyTheme("light");
 }
 
-/* ---------- Кнопка "наверх" ---------- */
 function initScrollTopButton() {
   var btn = document.getElementById("scrollTopBtn");
   if (!btn) return;
@@ -236,7 +241,6 @@ function initScrollTopButton() {
   });
 }
 
-/* ---------- SVG иконки ---------- */
 function svgBell() {
   return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
     '<defs><linearGradient id="bellGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE66D"/><stop offset="1" stop-color="#E8A32E"/></linearGradient></defs>' +
@@ -326,7 +330,6 @@ function svgMoney() {
     '</svg>';
 }
 
-/* ---------- Драконы ---------- */
 function dragonEgg() {
   return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
     '<defs><radialGradient id="eggGrad" cx="0.4" cy="0.35" r="0.75"><stop offset="0" stop-color="#F9A8D4"/><stop offset="0.55" stop-color="#C4B5FD"/><stop offset="1" stop-color="#7C3AED"/></radialGradient></defs>' +
@@ -449,7 +452,6 @@ function dragonSvg(key) {
   return fn ? fn() : "";
 }
 
-/* ---------- Гуфи ---------- */
 function guffyTentacles(cx, cy) {
   var legs = [
     [cx - 17, cy + 28, cx - 32, cy + 42, cx - 26, cy + 55],
@@ -874,7 +876,6 @@ function bindStartScreenTap() {
   });
 }
 
-/* Отрисовка баннеров */
 function renderChildHero() {
   if (currentRole !== "child") return;
   var el = document.getElementById("childHero");
@@ -944,9 +945,6 @@ function renderParentHero() {
   }
 }
 
-/* ============================================================
-   МОДЕЛЬ ДАННЫХ
-   ============================================================ */
 function createInitialData() {
   return {
     balance: 0, points: 0, totalEarnedPoints: 0,
@@ -1068,9 +1066,6 @@ function normalize(raw) {
   };
 }
 
-/* ============================================================
-   СОСТОЯНИЕ
-   ============================================================ */
 var currentRole = "";
 var firebaseRef = null;
 var firebaseReady = false;
@@ -1193,9 +1188,6 @@ function setSyncStatus(state, text) {
   label.textContent = text || "";
 }
 
-/* ============================================================
-   ИКОНКИ
-   ============================================================ */
 function paintStaticIcons() {
   var ids = {
     iconBell: svgBell(),
@@ -1236,9 +1228,6 @@ function guffyReplicasOn() {
   return data && data.guffyMode === "active";
 }
 
-/* ============================================================
-   ПРОФИЛЬ
-   ============================================================ */
 function getDisplayName() {
   return (data.profile && data.profile.name || "").trim();
 }
@@ -1296,9 +1285,6 @@ function pickProfileAvatar(e) {
   renderProfilePreview();
 }
 
-/* ============================================================
-   УВЕДОМЛЕНИЯ
-   ============================================================ */
 function addNotification(forRole, text, icon) {
   if (!text) return;
   if (forRole !== "parent" && forRole !== "child") return;
@@ -1354,9 +1340,6 @@ function clearNotifications() {
   showToast("Уведомления очищены");
 }
 
-/* ============================================================
-   СВЕЖИЕ ОДОБРЕНИЯ
-   ============================================================ */
 function checkFreshApprovals() {
   if (currentRole !== "child") return;
   var now = Date.now();
@@ -1373,9 +1356,6 @@ function checkFreshApprovals() {
   if (shownApprovalIds.length > 60) shownApprovalIds = shownApprovalIds.slice(-30);
 }
 
-/* ============================================================
-   УРОВНИ
-   ============================================================ */
 function getLevel(v) {
   var lvl = LEVELS[0];
   for (var i = 0; i < LEVELS.length; i++) {
@@ -1417,9 +1397,6 @@ function checkGoalsReady() {
   });
 }
 
-/* ============================================================
-   ПОВТОРЫ ЗАДАНИЙ
-   ============================================================ */
 function isChoreActiveToday(c) {
   var r = c.repeat || "daily";
   if (r === "daily") return true;
@@ -1442,9 +1419,6 @@ function countTodayByStatus(id, s) {
   return data.completions.filter(function (c) { return c.choreId === id && c.date === today() && c.status === s; }).length;
 }
 
-/* ============================================================
-   ЕЖЕДНЕВНОЕ СОКРОВИЩЕ
-   ============================================================ */
 function checkDailyTreasure() {
   if (treasureCheckedThisSession) return;
   treasureCheckedThisSession = true;
@@ -1478,9 +1452,6 @@ function addTransaction(d, opts) {
   if (points > 0) data.totalEarnedPoints += points;
 }
 
-/* ============================================================
-   МОДАЛЬНЫЕ ОКНА
-   ============================================================ */
 function openModal(id) {
   $("#modalBackdrop").classList.remove("hidden");
   $$(".modal").forEach(function (m) { m.classList.add("hidden"); });
@@ -1495,9 +1466,6 @@ function closeModal() {
   $$(".modal").forEach(function (m) { m.classList.add("hidden"); });
 }
 
-/* ============================================================
-   КАБИНЕТЫ
-   ============================================================ */
 function enterCabinet(role) {
   currentRole = role;
   document.getElementById("startScreen").classList.add("hidden");
@@ -1524,9 +1492,6 @@ function updateRoleVisibility() {
   if (parentHero) parentHero.style.display = (currentRole === "parent") ? "flex" : "none";
 }
 
-/* ============================================================
-   РЕНДЕР
-   ============================================================ */
 function cleanupOrphanCompletions() {
   var choreIds = {};
   data.chores.forEach(function (c) { choreIds[c.id] = true; });
@@ -1571,7 +1536,7 @@ function renderStatus() {
     var total = next.min - lvl.min;
     var p = total > 0 ? Math.round((done / total) * 100) : 0;
     document.getElementById("levelProgressBar").style.width = p + "%";
-    document.getElementById("levelProgressText").textContent = done + " / " + total + " баллов до «" + next.name + "»";
+    document.getElementById("levelProgressText").textContent = done + " / " + total + " " + pluralPoints(total) + " до «" + next.name + "»";
   } else {
     document.getElementById("levelProgressBar").style.width = "100%";
     document.getElementById("levelProgressText").textContent = "Максимум достигнут 🎉";
@@ -1596,7 +1561,7 @@ function renderMainGoal() {
   var bar2 = document.getElementById("goalProgressBar");
   if (bar2) bar2.style.width = p + "%";
   var txt2 = document.getElementById("goalProgressText");
-  if (txt2) txt2.textContent = pr + " из " + g.price + " баллов (" + p + "%)";
+  if (txt2) txt2.textContent = pr + " из " + g.price + " " + pluralPoints(g.price) + " (" + p + "%)";
 }
 
 function sortedGoals() {
@@ -1634,7 +1599,7 @@ function renderChores(isParent) {
       if (unlimited) {
         action = '<button class="button button--primary button--small" type="button" data-action="complete-chore" data-id="' + c.id + '">Выполнено' + (done > 0 ? " (" + done + ")" : "") + '</button>';
       } else if (done >= max) {
-        if (approved >= max) action = '<span class="amount-positive">✓ Все ' + max + ' раз</span>';
+        if (approved >= max) action = '<span class="amount-positive">✓ Все ' + max + ' ' + pluralTimes(max) + '</span>';
         else if (pending > 0 && approved === 0) action = '<span class="list-item__meta">На проверке (' + pending + "/" + max + ')</span>';
         else if (pending > 0) action = '<span class="list-item__meta">✓ ' + approved + " · ⏳ " + pending + '</span>';
         else action = '<span class="amount-positive">✓ Выполнено</span>';
@@ -1651,9 +1616,11 @@ function renderChores(isParent) {
     var showR = isParent || (c.repeat && c.repeat !== "daily");
     var bc = c.repeat === "custom" ? "custom" : (c.repeat || "daily");
     var rH = showR ? '<span class="badge badge--' + bc + '">' + repeatLabel(c.repeat || "daily", c.days) + '</span>' : "";
-    var mH = max > 1 ? '<span class="badge badge--multi">×' + (unlimited ? "∞" : max) + ' раз</span>' : "";
+    var mH = max > 1 ? (unlimited
+      ? '<span class="badge badge--multi">×∞</span>'
+      : '<span class="badge badge--multi">×' + max + " " + pluralTimes(max) + '</span>') : "";
     var cH = (max > 1 && !unlimited && done > 0) ? '<span class="chore-daily-count">' + done + " из " + max + ' сегодня</span>' : "";
-    var parts = [c.description, c.reward + " баллов"].filter(Boolean);
+    var parts = [c.description, c.reward + " " + pluralPoints(c.reward)].filter(Boolean);
     var meta = mH + rH + escapeHtml(parts.join(" · "));
 
     var cm = null;
@@ -1769,7 +1736,7 @@ function renderGoalHero(g, isParent) {
     '<div class="goal-hero__top"><div class="goal-hero__title">' + escapeHtml(g.title) + '</div><div class="goal-hero__percent ' + (p === 0 ? "goal-hero__percent--zero" : "") + '">' + p + '%</div></div>' +
     (dH ? '<div class="goal-hero__deadline">' + dH + '</div>' : "") +
     '<div class="goal-hero__progress"><div class="goal-progress"><div class="goal-progress__bar"><div class="goal-progress__fill" style="width:' + p + '%"></div></div><div class="goal-progress__milestones">' + ms + '</div></div></div>' +
-    '<div class="goal-hero__foot"><div class="goal-left">' + pr + " из " + g.price + ' баллов</div><div class="goal-hint">' + hT + '</div></div>' +
+    '<div class="goal-hero__foot"><div class="goal-left">' + pr + " из " + g.price + " " + pluralPoints(g.price) + '</div><div class="goal-hint">' + hT + '</div></div>' +
     ((claim || pb) ? '<div class="goal-hero__actions">' + claim + pb + '</div>' : "") +
     '</div>';
 }
@@ -1790,7 +1757,7 @@ function renderGoalMini(g, isParent) {
     bI +
     '<div class="goal-mini__row"><div class="goal-mini__title">' + escapeHtml(g.title) + '</div><div class="goal-mini__percent ' + (p === 0 ? "goal-mini__percent--zero" : "") + '">' + p + '%</div></div>' +
     '<div class="goal-progress goal-progress--mini"><div class="goal-progress__bar"><div class="goal-progress__fill" style="width:' + p + '%"></div></div><div class="goal-progress__milestones">' + ms + '</div></div>' +
-    '<div class="goal-mini__meta">' + pr + " из " + g.price + ' баллов</div>' +
+    '<div class="goal-mini__meta">' + pr + " из " + g.price + " " + pluralPoints(g.price) + '</div>' +
     ((claim || pb) ? '<div class="goal-mini__actions">' + claim + pb + '</div>' : "") +
     '</div>';
 }
@@ -1830,7 +1797,7 @@ function renderPendingChores() {
     var ch = data.chores.find(function (x) { return x.id === c.choreId; });
     if (!ch) return "";
     var pH = c.photo ? '<img class="chore-photo-thumb" src="' + c.photo + '" alt="Фото">' : "";
-    return '<div class="list-item"><div><div class="list-item__title">' + escapeHtml(ch.title) + '</div><div class="list-item__meta">' + ch.reward + " баллов · " + c.date + '</div>' + pH + '</div><div class="list-item__actions"><button class="button button--primary button--small" type="button" data-action="approve-chore" data-id="' + c.id + '">💬 Одобрить</button> <button class="button button--light button--small" type="button" data-action="reject-chore" data-id="' + c.id + '">Отклонить</button></div></div>';
+    return '<div class="list-item"><div><div class="list-item__title">' + escapeHtml(ch.title) + '</div><div class="list-item__meta">' + ch.reward + " " + pluralPoints(ch.reward) + " · " + c.date + '</div>' + pH + '</div><div class="list-item__actions"><button class="button button--primary button--small" type="button" data-action="approve-chore" data-id="' + c.id + '">💬 Одобрить</button> <button class="button button--light button--small" type="button" data-action="reject-chore" data-id="' + c.id + '">Отклонить</button></div></div>';
   }).join("");
   el.innerHTML = html;
 }
@@ -1877,9 +1844,6 @@ function renderMyWithdrawStatus() {
   el.innerHTML = '<div class="chore-comment">⏳ Запрос на ' + r.amount + ' BYN на проверке' + (r.reason ? ": " + escapeHtml(r.reason) : "") + '</div>';
 }
 
-/* ============================================================
-   ФОТО
-   ============================================================ */
 function compressImage(file, max, q) {
   return new Promise(function (res, rej) {
     var r = new FileReader();
@@ -1920,9 +1884,6 @@ function showApproveAnimation(reward) {
   setTimeout(function () { o.remove(); }, 1300);
 }
 
-/* ============================================================
-   ДЕЙСТВИЯ
-   ============================================================ */
 function openPhotoModal(id) {
   var ch = data.chores.find(function (x) { return x.id === id; });
   if (!ch) return;
@@ -2027,9 +1988,9 @@ function approveChoreWithComment(id, comment) {
       c.comment = comment || "";
       c.photo = "";
       c.approvedAt = Date.now();
-      addNotification("child", "Задание «" + ch.title + "» отклонено: лимит " + max + " раз в день", "❌");
+      addNotification("child", "Задание «" + ch.title + "» отклонено: лимит " + max + " " + pluralTimes(max) + " в день", "❌");
       saveData();
-      showToast("Лимит на сегодня: " + max + " раз");
+      showToast("Лимит на сегодня: " + max + " " + pluralTimes(max));
       return;
     }
   }
@@ -2178,9 +2139,6 @@ function updateGradeHint(sub) {
   else h.innerHTML = '10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>4, 5, 6 → 0 BYN · <strong>1, 2, 3 → −2 BYN</strong>';
 }
 
-/* ============================================================
-   ЗАПРОСЫ НА ДЕНЬГИ
-   ============================================================ */
 function openWithdrawRequestModal() {
   document.getElementById("withdrawRequestForm").reset();
   document.getElementById("withdrawBalanceLabel").textContent = data.balance + " BYN";
@@ -2253,9 +2211,6 @@ function rejectWithdraw(id) {
   showToast("Запрос отклонён");
 }
 
-/* ============================================================
-   УПРАВЛЕНИЕ БАЛАНСОМ (РОДИТЕЛЬ)
-   ============================================================ */
 function openBalanceManageModal(prefill) {
   document.getElementById("balanceManageForm").reset();
   document.getElementById("balanceManageLabel").textContent =
@@ -2328,9 +2283,6 @@ function submitBalanceManage() {
   else showToast("Списано");
 }
 
-/* ============================================================
-   ИМПОРТ ИЗ JSON
-   ============================================================ */
 function importDataFromJson(file) {
   var reader = new FileReader();
   reader.onload = function (e) {
@@ -2376,9 +2328,6 @@ function importDataFromJson(file) {
   reader.readAsText(file);
 }
 
-/* ============================================================
-   ТЕСТОВЫЕ ДЕЙСТВИЯ
-   ============================================================ */
 function resetPointsOnly() { if (!confirm("Обнулить баллы?")) return; data.points = 0; saveData(); closeModal(); showToast("Баллы обнулены"); }
 function resetBalanceOnly() { if (!confirm("Обнулить баланс?")) return; data.balance = 0; saveData(); closeModal(); showToast("Баланс обнулён"); }
 function clearHistoryOnly() { if (!confirm("Очистить историю?")) return; data.transactions = []; saveData(); closeModal(); showToast("История очищена"); }
@@ -2391,9 +2340,6 @@ function resetEverything() {
   location.reload();
 }
 
-/* ============================================================
-   ОТЧЁТ ЗА НЕДЕЛЮ
-   ============================================================ */
 function buildWeeklyReport() {
   var now = new Date();
   var w = new Date(now);
@@ -2429,9 +2375,6 @@ function openWeeklyReport() {
   openModal("reportModal");
 }
 
-/* ============================================================
-   TOAST + КОНФЕТТИ
-   ============================================================ */
 var toastTimer = null;
 function showToast(msg, kind) {
   var t = document.getElementById("toast");
@@ -2461,9 +2404,6 @@ function spawnConfetti(n) {
   }
 }
 
-/* ============================================================
-   ДНИ НЕДЕЛИ
-   ============================================================ */
 function renderChoreDaysGrid() {
   $$("#choreDaysGrid .weekday-btn").forEach(function (b) {
     var d = Number(b.dataset.day);
@@ -2497,15 +2437,12 @@ function setMaxPerDaySelect(val) {
   if (!found) {
     var opt = document.createElement("option");
     opt.value = v;
-    opt.textContent = v + " раз";
+    opt.textContent = v + " " + pluralTimes(Number(v));
     sel.appendChild(opt);
   }
   sel.value = v;
 }
 
-/* ============================================================
-   ШАБЛОНЫ ЗАДАНИЙ
-   ============================================================ */
 function renderChoreTemplateSelect() {
   var sel = document.getElementById("choreTemplateSelect");
   if (!sel) return;
@@ -2537,9 +2474,6 @@ function setChoreTemplatesVisible(visible) {
   if (sel) sel.value = "";
 }
 
-/* ============================================================
-   СМЕНА ДНЯ
-   ============================================================ */
 function checkDayChange() {
   var t = today();
   if (t !== currentDay) {
@@ -2557,9 +2491,6 @@ function checkDayChange() {
   }
 }
 
-/* ============================================================
-   ПРИВЯЗКА СОБЫТИЙ
-   ============================================================ */
 function bindEvents() {
   var childBtn = document.getElementById("childLogin");
   if (childBtn) childBtn.addEventListener("click", function (e) { e.preventDefault(); enterCabinet("child"); });
@@ -3003,10 +2934,7 @@ function bindEvents() {
   bindStartScreenTap();
 }
 
-/* ============================================================
-   СТАРТ
-   ============================================================ */
-console.log("Моя копилка v48 загружена (модульная версия: index.html + styles.css + app.js)");
+console.log("Моя копилка v49 загружена (падежи исправлены)");
 
 initTheme();
 paintStaticIcons();

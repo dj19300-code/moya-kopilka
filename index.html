@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#8B5CF6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Моя копилка</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="startScreen" class="screen-start">
+  <section class="welcome-card">
+    <div class="piggy-scene" id="piggyScene">
+      <div class="piggy-coin" id="piggyCoin1"></div>
+      <div class="piggy-coin piggy-coin--2" id="piggyCoin2"></div>
+      <div class="piggy-svg" id="piggySvg"></div>
+      <div class="guffy-full" id="guffyFull"></div>
+      <span class="sparkle"></span>
+      <span class="sparkle"></span>
+      <span class="sparkle"></span>
+      <span class="sparkle"></span>
+    </div>
+
+    <div class="welcome-greeting" id="welcomeGreeting">Привет ✨</div>
+    <h1 class="welcome-title">Моя копилка</h1>
+    <p class="welcome-tagline">Баллы, оценки и семейные задания</p>
+
+    <div class="role-grid">
+      <button class="role-card role-card--child" id="childLogin" type="button">
+        <div class="role-card__icon">👧</div>
+        <strong>Кабинет ребёнка</strong>
+        <small>Задания, оценки и цели</small>
+        <span class="role-card__badge hidden" id="childBadge"></span>
+      </button>
+      <button class="role-card role-card--parent" id="parentLogin" type="button">
+        <div class="role-card__icon">👨‍👩‍👧</div>
+        <strong>Кабинет родителя</strong>
+        <small>Настройки и проверка</small>
+      </button>
+    </div>
+
+    <div class="welcome-summary hidden" id="welcomeSummary"></div>
+  </section>
+</div>
+
+<div id="app" class="hidden">
+  <main class="container">
+    <!-- Баннер ребёнка -->
+    <section class="hero child-hero" id="childHero" style="display:none">
+      <div class="hero__deco"></div>
+      <div class="child-hero__avatar-wrap">
+        <button class="child-hero__avatar" id="childHeroAvatar" type="button">👧</button>
+        <span class="child-hero__avatar-badge">✏️</span>
+      </div>
+      <div class="hero__body">
+        <div class="child-hero__greeting" id="childHeroGreeting">Добрый день ☀️</div>
+        <div class="child-hero__title" id="childHeroTitle">Привет!</div>
+        <div class="child-hero__sub" id="childHeroSub">Уровень: Яйцо</div>
+      </div>
+      <div class="hero-tools">
+        <button class="hero-tool" type="button" data-action="toggle-theme" title="Тема">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <button class="hero-tool" type="button" data-action="open-notifications" title="Уведомления">
+          🔔
+          <span class="hero-tool__badge hidden" id="notifBadgeChild">0</span>
+        </button>
+        <button class="hero-tool hero-tool--wide" type="button" data-action="change-cabinet">Сменить</button>
+      </div>
+    </section>
+
+    <!-- Баннер родителя -->
+    <section class="hero parent-hero" id="parentHero" style="display:none">
+      <div class="hero__deco"></div>
+      <div class="parent-hero__guffy" id="parentHeroGuffy"></div>
+      <div class="hero__body">
+        <div class="parent-hero__greeting" id="parentHeroGreeting">Кабинет родителя</div>
+        <div class="parent-hero__title" id="parentHeroTitle">Всё под контролем</div>
+        <div class="parent-hero__sub" id="parentHeroSub">Управление копилкой и проверка</div>
+      </div>
+      <div class="hero-tools">
+        <button class="hero-tool" type="button" data-action="toggle-theme" title="Тема">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <button class="hero-tool" type="button" data-action="open-notifications" title="Уведомления">
+          🔔
+          <span class="hero-tool__badge hidden" id="notifBadgeParent">0</span>
+        </button>
+        <button class="hero-tool" type="button" data-action="open-advanced" title="Настройки">⚙️</button>
+        <button class="hero-tool hero-tool--wide" type="button" data-action="change-cabinet">Сменить</button>
+      </div>
+    </section>
+
+    <div class="sync-banner" id="syncBanner">
+      <span class="sync-banner__dot"></span>
+      <span id="syncText">Подключение…</span>
+    </div>
+
+    <section class="summary-grid">
+      <article class="card summary-card summary-card--green">
+        <span class="label">Баланс</span>
+        <strong id="balance">0 BYN</strong>
+        <small>Оценки и обмен баллов</small>
+        <div class="summary-card__quick parent-only">
+          <button class="quick-chip" type="button" data-quick-manage="byn" data-sign="-1" title="Списать">−</button>
+          <button class="quick-chip quick-chip--plus" type="button" data-quick-manage="byn" data-sign="1" title="Начислить">+</button>
+          <button class="quick-chip quick-chip--edit" type="button" data-quick-manage="byn" data-sign="0" title="Изменить">✏️</button>
+        </div>
+        <div class="summary-card__deco" id="balanceDeco"></div>
+      </article>
+      <article class="card summary-card summary-card--blue">
+        <span class="label">Баллы</span>
+        <strong id="points">0</strong>
+        <small>5 баллов = 1 BYN</small>
+        <div class="summary-card__quick parent-only">
+          <button class="quick-chip" type="button" data-quick-manage="points" data-sign="-1" title="Списать">−</button>
+          <button class="quick-chip quick-chip--plus" type="button" data-quick-manage="points" data-sign="1" title="Начислить">+</button>
+          <button class="quick-chip quick-chip--edit" type="button" data-quick-manage="points" data-sign="0" title="Изменить">✏️</button>
+        </div>
+        <div class="summary-card__deco" id="pointsDeco"></div>
+      </article>
+    </section>
+
+    <section class="dashboard-grid--2 section-gap">
+      <div class="status-item">
+        <div class="level-dragon-wrap" id="levelDragon"></div>
+        <div class="status-body">
+          <div class="status-label">Уровень</div>
+          <div class="status-value" id="levelName">Яйцо</div>
+          <div class="progress progress--small"><span id="levelProgressBar"></span></div>
+          <small class="muted" id="levelProgressText">0 / 200 баллов до «Дракончик»</small>
+        </div>
+      </div>
+
+      <article class="card">
+        <div class="panel-heading">
+          <div class="section-title">
+            <span class="section-title__icon" id="iconDiary"></span>
+            <h2>Оценки</h2>
+          </div>
+          <div class="button-group">
+            <button class="button button--primary parent-only" id="openGradeModal" type="button">+ Добавить</button>
+            <button class="button button--primary child-only" id="suggestGradeButton" type="button">Предложить</button>
+          </div>
+        </div>
+        <div class="list" id="gradesList"></div>
+      </article>
+    </section>
+
+    <section class="card parent-only section-gap">
+      <div class="panel-heading">
+        <div class="section-title">
+          <span class="section-title__icon" id="iconBell"></span>
+          <h2>Проверка заданий</h2>
+        </div>
+      </div>
+      <div class="list" id="pendingList"></div>
+    </section>
+
+    <section class="card parent-only section-gap">
+      <div class="panel-heading">
+        <div class="section-title">
+          <span class="section-title__icon" id="iconMoney"></span>
+          <h2>Запросы на деньги</h2>
+        </div>
+        <button class="button button--light" id="openBalanceManage" type="button">💰 Управление балансом</button>
+      </div>
+      <div class="list" id="withdrawRequestsList"></div>
+    </section>
+
+    <section class="card section-gap">
+      <div class="panel-heading">
+        <div class="section-title">
+          <span class="section-title__icon" id="iconChecklist"></span>
+          <h2>Задания на сегодня</h2>
+        </div>
+        <button class="button button--primary parent-only" id="openChoreModal" type="button">+ Добавить</button>
+      </div>
+      <div class="list" id="choresList"></div>
+    </section>
+
+    <section class="card section-gap">
+      <div class="panel-heading">
+        <div class="section-title">
+          <span class="section-title__icon" id="iconTarget"></span>
+          <h2>Цели</h2>
+        </div>
+        <button class="button button--primary parent-only" id="openGoalModal" type="button">+ Добавить</button>
+      </div>
+      <div id="goalsLayout"></div>
+    </section>
+
+    <section class="dashboard-grid--2 section-gap">
+      <article class="card child-only">
+        <div class="panel-heading">
+          <div class="section-title">
+            <span class="section-title__icon" id="iconExchange"></span>
+            <h2>Обмен баллов</h2>
+          </div>
+        </div>
+        <p class="muted" style="margin-top:-8px">5 баллов = 1 BYN</p>
+        <div class="exchange-form">
+          <input id="exchangeInput" type="number" min="5" step="5" value="5" inputmode="numeric">
+          <button class="button button--primary" id="exchangeButton" type="button">Обменять</button>
+        </div>
+        <small class="muted" id="exchangeInfo"></small>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #EDE4FF">
+          <p class="muted" style="margin:0 0 8px 0">💵 Хочешь получить деньги на руки?</p>
+          <button class="button button--gold" id="requestWithdrawButton" type="button">Попросить деньги</button>
+          <div id="myWithdrawStatus" style="margin-top:10px"></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="panel-heading">
+          <div class="section-title">
+            <span class="section-title__icon" id="iconBook"></span>
+            <h2>История операций</h2>
+          </div>
+          <div class="button-group">
+            <button class="button button--light" id="weeklyReportButton" type="button">📊 Отчёт</button>
+            <button class="button button--light parent-only" id="exportButton" type="button">Экспорт</button>
+          </div>
+        </div>
+        <div class="list" id="historyList"></div>
+      </article>
+    </section>
+  </main>
+</div>
+
+<button class="scroll-top-btn" id="scrollTopBtn" type="button" aria-label="Наверх">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6 14 12 8 18 14"></polyline>
+  </svg>
+</button>
+
+<div class="modal-backdrop hidden" id="modalBackdrop">
+  <div class="modal hidden" id="profileModal">
+    <h3>Мой профиль</h3>
+    <form id="profileForm">
+      <div class="profile-preview">
+        <div class="profile-preview__avatar" id="profilePreviewAvatar">👧</div>
+        <div class="profile-preview__body">
+          <div class="profile-preview__name" id="profilePreviewName">Имя не указано</div>
+          <div class="profile-preview__meta" id="profilePreviewMeta">Заполни профиль ниже</div>
+        </div>
+      </div>
+      <label>Выбери аватар
+        <div class="avatar-grid" id="avatarGrid" style="margin-top:8px"></div>
+      </label>
+      <label>Имя<input id="profileName" type="text" maxlength="20" placeholder="Например: Маша"></label>
+      <label>Возраст<input id="profileAge" type="number" min="1" max="120" inputmode="numeric" placeholder="Например: 10"></label>
+      <label>Класс<input id="profileClass" type="text" maxlength="6" placeholder="Например: 4А"></label>
+      <label>Дата рождения<input id="profileBirthday" type="date"></label>
+      <p class="modal-hint">Всё необязательно.</p>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="photoModal">
+    <h3>Отправить задание</h3>
+    <p class="muted" id="photoChoreName" style="margin-top:-8px;margin-bottom:12px;"></p>
+    <form id="photoForm">
+      <input type="hidden" id="photoChoreId">
+      <label>Фото-отчёт (необязательно)
+        <input id="photoFileInput" type="file" accept="image/*" capture="environment">
+      </label>
+      <div id="photoPreviewWrap" class="photo-preview-wrap hidden">
+        <img id="photoPreview" alt="Превью">
+        <button type="button" class="button button--light button--small" id="photoRemoveBtn">Убрать фото</button>
+      </div>
+      <p class="modal-hint">Фото сожмётся автоматически.</p>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Отправить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="notificationsModal">
+    <h3>🔔 Уведомления</h3>
+    <div class="list" id="notificationsList"></div>
+    <div class="modal-actions">
+      <button class="button button--light" id="clearNotificationsBtn" type="button">Очистить</button>
+      <button class="button button--primary" type="button" data-close-modal>Закрыть</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="withdrawRequestModal">
+    <h3>💵 Попросить деньги</h3>
+    <p class="muted" style="margin-top:-8px;margin-bottom:12px;">Баланс: <strong id="withdrawBalanceLabel">0 BYN</strong></p>
+    <form id="withdrawRequestForm">
+      <label>Сумма (BYN)
+        <input id="withdrawAmount" type="number" min="1" step="1" inputmode="numeric" required>
+      </label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:-6px">
+        <button type="button" class="button button--light button--small" data-quick-amount="5">5</button>
+        <button type="button" class="button button--light button--small" data-quick-amount="10">10</button>
+        <button type="button" class="button button--light button--small" data-quick-amount="20">20</button>
+        <button type="button" class="button button--light button--small" data-quick-amount="50">50</button>
+      </div>
+      <label>Зачем (необязательно)
+        <input id="withdrawReason" type="text" maxlength="60" placeholder="Например: на мороженое">
+      </label>
+      <p class="modal-hint">Родитель увидит запрос и подтвердит выдачу.</p>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Отправить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="balanceManageModal">
+    <h3>💰 Управление балансом</h3>
+    <p class="muted" style="margin-top:-8px;margin-bottom:12px;">Сейчас: <strong id="balanceManageLabel">0 BYN</strong></p>
+    <form id="balanceManageForm">
+      <label>Что меняем
+        <select id="balanceManageType">
+          <option value="byn">💵 Баланс (BYN)</option>
+          <option value="points">⭐ Баллы</option>
+        </select>
+      </label>
+      <label>Действие
+        <select id="balanceManageSign">
+          <option value="1">➕ Начислить</option>
+          <option value="-1">➖ Списать</option>
+        </select>
+      </label>
+      <label>Сумма
+        <input id="balanceManageAmount" type="number" min="1" step="1" inputmode="numeric" required>
+      </label>
+      <label>Причина
+        <input id="balanceManageReason" type="text" maxlength="60" placeholder="Например: Бонус за помощь">
+      </label>
+      <p class="modal-hint" id="balanceManageHint"></p>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Применить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="approveWithdrawModal">
+    <h3>💸 Выдать деньги</h3>
+    <p class="muted" id="approveWithdrawSubtitle" style="margin-top:-8px;margin-bottom:12px;"></p>
+    <form id="approveWithdrawForm">
+      <input type="hidden" id="approveWithdrawId">
+      <label>Сумма к выдаче (BYN)
+        <input id="approveWithdrawAmount" type="number" min="1" step="1" inputmode="numeric" required>
+      </label>
+      <p class="modal-hint" id="approveWithdrawHint"></p>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">💸 Выдать</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="choreModal">
+    <h3 id="choreModalTitle">Новое задание</h3>
+    <form id="choreForm">
+      <input type="hidden" id="choreEditId">
+      <div id="choreTemplatesBlock">
+        <label>Быстрый выбор
+          <select id="choreTemplateSelect">
+            <option value="">— Выбрать шаблон —</option>
+          </select>
+        </label>
+      </div>
+      <label>Название<input id="choreTitle" type="text" required></label>
+      <label>Описание<input id="choreDescription" type="text"></label>
+      <label>Баллы<input id="choreReward" type="number" min="0" step="1" value="5" inputmode="numeric" required></label>
+      <label>Сколько раз в день
+        <select id="choreMaxPerDay">
+          <option value="1">1 раз</option>
+          <option value="2">2 раза</option>
+          <option value="3">3 раза</option>
+          <option value="5">5 раз</option>
+          <option value="10">10 раз</option>
+          <option value="999">Без ограничений</option>
+        </select>
+      </label>
+      <label>Повтор
+        <select id="choreRepeat">
+          <option value="daily">🔁 Каждый день</option>
+          <option value="weekdays">📅 По будням (Пн–Пт)</option>
+          <option value="weekend">🎉 По выходным</option>
+          <option value="custom">📆 Выбрать дни</option>
+          <option value="once">1️⃣ Один раз</option>
+        </select>
+      </label>
+      <div id="choreDaysWrapper" class="hidden">
+        <label style="margin-top:-8px">Дни недели</label>
+        <div class="weekdays-grid" id="choreDaysGrid">
+          <button type="button" class="weekday-btn" data-day="1">Пн</button>
+          <button type="button" class="weekday-btn" data-day="2">Вт</button>
+          <button type="button" class="weekday-btn" data-day="3">Ср</button>
+          <button type="button" class="weekday-btn" data-day="4">Чт</button>
+          <button type="button" class="weekday-btn" data-day="5">Пт</button>
+          <button type="button" class="weekday-btn" data-day="6">Сб</button>
+          <button type="button" class="weekday-btn" data-day="0">Вс</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="gradeModal">
+    <h3 id="gradeModalTitle">Новая оценка</h3>
+    <form id="gradeForm">
+      <input type="hidden" id="gradeEditId">
+      <label>Предмет
+        <select id="gradeSubjectSelect">
+          <option value="Математика">Математика</option>
+          <option value="Русский язык">Русский язык</option>
+          <option value="Белорусский язык">Белорусский язык</option>
+          <option value="Литературное чтение">Литературное чтение</option>
+          <option value="Окружающий мир">Окружающий мир</option>
+          <option value="Английский язык">Английский язык</option>
+          <option value="Трудовое обучение">Трудовое обучение</option>
+          <option value="Изобразительное искусство">Изобразительное искусство</option>
+          <option value="Физическая культура">Физическая культура</option>
+          <option value="__custom__">✏️ Другое (ввести своё)</option>
+        </select>
+      </label>
+      <label id="gradeCustomSubjectWrapper" class="hidden">Свой предмет
+        <input id="gradeSubjectCustom" type="text" placeholder="Например: Музыка">
+      </label>
+      <label>Оценка (2–10)<input id="gradeValue" type="number" min="2" max="10" step="1" inputmode="numeric" required></label>
+      <p class="modal-hint" id="gradeHint">
+        10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>
+        4, 5, 6 → 0 BYN · <strong>1, 2, 3 → −2 BYN</strong>
+      </p>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="suggestGradeModal">
+    <h3>Предложить оценку</h3>
+    <form id="suggestGradeForm">
+      <label>Предмет
+        <select id="suggestSubjectSelect">
+          <option value="Математика">Математика</option>
+          <option value="Русский язык">Русский язык</option>
+          <option value="Белорусский язык">Белорусский язык</option>
+          <option value="Литературное чтение">Литературное чтение</option>
+          <option value="Окружающий мир">Окружающий мир</option>
+          <option value="Английский язык">Английский язык</option>
+          <option value="Трудовое обучение">Трудовое обучение</option>
+          <option value="Изобразительное искусство">Изобразительное искусство</option>
+          <option value="Физическая культура">Физическая культура</option>
+          <option value="__custom__">✏️ Другое (ввести своё)</option>
+        </select>
+      </label>
+      <label id="suggestCustomSubjectWrapper" class="hidden">Свой предмет
+        <input id="suggestSubjectCustom" type="text" placeholder="Например: Музыка">
+      </label>
+      <label>Оценка (2–10)<input id="suggestValue" type="number" min="2" max="10" step="1" inputmode="numeric" required></label>
+      <p class="modal-hint">Родитель проверит и подтвердит.</p>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Отправить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="goalModal">
+    <h3 id="goalModalTitle">Новая цель</h3>
+    <form id="goalForm">
+      <input type="hidden" id="goalEditIndex">
+      <label>Название<input id="goalTitle" type="text" required placeholder="Например: Наушники"></label>
+      <label>Цена в баллах<input id="goalPrice" type="number" min="1" step="1" inputmode="numeric" required></label>
+      <label>Срок (необязательно)<input id="goalDeadline" type="date"></label>
+      <label class="switch-row" for="goalImportant">
+        <span class="switch-row__text">
+          ⭐ Главная цель
+          <span class="switch-row__hint">Покажется первой</span>
+        </span>
+        <input type="checkbox" id="goalImportant">
+      </label>
+      <p class="modal-hint">Можно добавить не больше 3 целей.</p>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="commentModal">
+    <h3 id="commentModalTitle">Одобрить задание</h3>
+    <p class="muted" id="commentChoreTitle" style="margin-top:-8px;margin-bottom:12px;"></p>
+    <form id="commentForm">
+      <input type="hidden" id="commentCompletionId">
+      <input type="hidden" id="commentMode" value="approve">
+      <label id="commentLabel">Комментарий (необязательно)
+        <input id="commentText" type="text" maxlength="120" placeholder="Например: Отлично получилось!">
+      </label>
+      <p class="modal-hint" id="commentHint">Ребёнок увидит комментарий под заданием.</p>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit" id="commentSubmitBtn">✓ Одобрить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="reportModal">
+    <h3>📊 Отчёт за неделю</h3>
+    <div id="reportContent"></div>
+    <div class="modal-actions">
+      <button class="button button--primary" type="button" data-close-modal>Закрыть</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="advancedModal">
+    <h3>🧪 Дополнительно</h3>
+    <p class="modal-hint" style="margin:0 0 14px 0">Настройки Гуфи и тестовые действия.</p>
+    <label>🐙 Гуфи
+      <select id="guffyModeSelect">
+        <option value="active">Активный — эмоции и реплики</option>
+        <option value="quiet">Тихий — без реакций</option>
+        <option value="off">Выключен — просто картинка</option>
+      </select>
+    </label>
+    <div class="advanced-actions" style="margin-top:14px">
+      <button class="button button--light" id="importButton" type="button">📥 Импорт из файла</button>
+      <button class="button button--light" id="resetPointsButton" type="button">🎯 Обнулить баллы</button>
+      <button class="button button--light" id="resetBalanceButton" type="button">💰 Обнулить баланс</button>
+      <button class="button button--light" id="clearHistoryButton" type="button">🧹 Очистить историю</button>
+      <button class="button button--light" id="resetLevelButton" type="button">⬇ Сбросить уровень</button>
+      <button class="button button--light" id="editLevelButton" type="button">✏️ Установить баллы уровня</button>
+      <button class="button button--danger" id="resetAllButton" type="button">🗑 Полный сброс</button>
+    </div>
+    <input type="file" id="importFileInput" accept="application/json,.json" class="hidden">
+    <div class="modal-actions">
+      <button class="button button--light" type="button" data-close-modal>Закрыть</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="levelEditModal">
+    <h3>✏️ Установить баллы уровня</h3>
+    <p class="modal-hint" style="margin:-8px 0 14px 0">Шкала: 0, 200, 600, 1200, 2500, 5000.</p>
+    <form id="levelEditForm">
+      <label>Баллы уровня
+        <input id="levelEditValue" type="number" min="0" step="1" inputmode="numeric" required>
+      </label>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Установить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal hidden" id="passwordModal">
+    <h3>Вход для родителя</h3>
+    <form id="passwordForm">
+      <label>Пароль<input id="passwordInput" type="password" required autocomplete="off"></label>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Войти</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -139,7 +139,7 @@ function randomPhrase() { return MOTIVATION_PHRASES[Math.floor(Math.random() * M
 function isMath(s) { return String(s || "").trim().toLowerCase() === MATH_SUBJECT.toLowerCase(); }
 function paymentForGrade(g, s) {
   if (g >= 1 && g <= 3) return -2;
-  if (g >= 4 && g <= 6) return 0;
+  if (g === 4 || g === 5 || g === 6) return 0;
   if (isMath(s)) {
     if (g === 10 || g === 9) return 5;
     if (g === 8) return 4;
@@ -149,6 +149,10 @@ function paymentForGrade(g, s) {
     if (g === 9) return 2;
     if (g === 7 || g === 8) return 1;
   }
+  return 0;
+}
+function penaltyPointsForGrade(g) {
+  if (g === 4 || g === 5) return -5;
   return 0;
 }
 function gradeEmoji(g) {
@@ -1450,6 +1454,7 @@ function addTransaction(d, opts) {
   data.balance += byn;
   data.points += points;
   if (points > 0) data.totalEarnedPoints += points;
+  if (points < 0 && opts.affectLevel) data.totalEarnedPoints += points;
 }
 
 function openModal(id) {
@@ -1458,7 +1463,7 @@ function openModal(id) {
   var modal = document.getElementById(id);
   if (!modal) return;
   modal.classList.remove("hidden");
-  var first = modal.querySelector("input[type=text]:not([type=hidden]), input[type=number]:not([type=hidden])");
+  var first = modal.querySelector("input[type=text]:not([type=hidden]), input[type=number]:not([type=hidden]), input[type=password]:not([type=hidden])");
   if (first) setTimeout(function () { first.focus(); }, 100);
 }
 function closeModal() {
@@ -1659,10 +1664,13 @@ function renderGrades(isParent) {
   });
   var html = sortedGrades.slice(0, GRADES_LIMIT).map(function (g) {
     var em = gradeEmoji(g.value);
-    var a;
-    if (g.payment > 0) a = '<span class="amount-positive">+' + g.payment + ' BYN</span>';
-    else if (g.payment < 0) a = '<span class="amount-negative">' + g.payment + ' BYN</span>';
-    else a = '<span class="amount-zero">0 BYN</span>';
+    var parts = [];
+    if (g.payment > 0) parts.push('<span class="amount-positive">+' + g.payment + ' BYN</span>');
+    else if (g.payment < 0) parts.push('<span class="amount-negative">' + g.payment + ' BYN</span>');
+    var penalty = penaltyPointsForGrade(g.value);
+    if (penalty) parts.push('<span class="amount-negative">' + penalty + ' ' + pluralPoints(Math.abs(penalty)) + '</span>');
+    if (!parts.length) parts.push('<span class="amount-zero">0 BYN</span>');
+    var a = parts.join(" ");
     var pb = isParent
       ? '<button class="button button--light button--small" type="button" data-action="edit-grade" data-id="' + g.id + '">Изменить</button> <button class="button button--danger button--small" type="button" data-action="delete-grade" data-id="' + g.id + '">Удалить</button>'
       : "";
@@ -1673,11 +1681,13 @@ function renderGrades(isParent) {
     html += data.gradeRequests.map(function (r) {
       var em = gradeEmoji(r.value);
       var pay = paymentForGrade(r.value, r.subject);
-      var h;
-      if (pay > 0) h = '<span class="amount-positive">+' + pay + ' BYN</span>';
-      else if (pay < 0) h = '<span class="amount-negative">' + pay + ' BYN</span>';
-      else h = '<span class="amount-zero">без оплаты</span>';
-      return '<div class="list-item list-item--pending"><div><div class="list-item__title">' + em + " " + escapeHtml(r.subject) + " — " + r.value + '</div><div class="list-item__meta">От ребёнка · ' + r.date + " · " + h + '</div></div><div class="list-item__actions"><button class="button button--primary button--small" type="button" data-action="approve-grade" data-id="' + r.id + '">Одобрить</button> <button class="button button--light button--small" type="button" data-action="reject-grade" data-id="' + r.id + '">Отклонить</button></div></div>';
+      var penalty = penaltyPointsForGrade(r.value);
+      var parts = [];
+      if (pay > 0) parts.push('<span class="amount-positive">+' + pay + ' BYN</span>');
+      else if (pay < 0) parts.push('<span class="amount-negative">' + pay + ' BYN</span>');
+      if (penalty) parts.push('<span class="amount-negative">' + penalty + ' ' + pluralPoints(Math.abs(penalty)) + '</span>');
+      if (!parts.length) parts.push('<span class="amount-zero">без оплаты</span>');
+      return '<div class="list-item list-item--pending"><div><div class="list-item__title">' + em + " " + escapeHtml(r.subject) + " — " + r.value + '</div><div class="list-item__meta">От ребёнка · ' + r.date + " · " + parts.join(" ") + '</div></div><div class="list-item__actions"><button class="button button--primary button--small" type="button" data-action="approve-grade" data-id="' + r.id + '">Одобрить</button> <button class="button button--light button--small" type="button" data-action="reject-grade" data-id="' + r.id + '">Отклонить</button></div></div>';
     }).join("");
   } else {
     html += data.gradeRequests.map(function (r) {
@@ -2036,17 +2046,22 @@ function approveGrade(id) {
   var r = data.gradeRequests.find(function (x) { return x.id === id; });
   if (!r) return;
   var p = paymentForGrade(r.value, r.subject);
+  var penalty = penaltyPointsForGrade(r.value);
   data.gradeRequests = data.gradeRequests.filter(function (x) { return x.id !== id; });
   data.grades.unshift({ id: r.id, subject: r.subject, value: r.value, date: r.date, payment: p });
-  addTransaction("Оценка " + r.value + ": " + r.subject, { byn: p });
+  if (p) addTransaction("Оценка " + r.value + ": " + r.subject, { byn: p });
+  if (penalty) addTransaction("Штраф за оценку " + r.value + ": " + r.subject, { points: penalty, affectLevel: true });
   var s = "";
   if (p > 0) s = " · +" + p + " BYN";
   else if (p < 0) s = " · " + p + " BYN";
+  if (penalty) s += " · " + penalty + " " + pluralPoints(Math.abs(penalty));
   addNotification("child", "Оценка «" + r.subject + " — " + r.value + "» подтверждена" + s, "🎓");
   saveData();
   if (p > 0) showToast("Начислено " + p + " BYN", "success");
   else if (p < 0) showToast("Штраф " + Math.abs(p) + " BYN");
+  else if (penalty) showToast("Штраф " + Math.abs(penalty) + " " + pluralPoints(Math.abs(penalty)));
   else showToast("Оценка подтверждена");
+  if (penalty) { checkLevelUp(); checkGoalsReady(); }
 }
 
 function rejectGrade(id) {
@@ -2063,8 +2078,11 @@ function deleteGrade(id) {
   var g = data.grades[idx];
   if (!confirm('Удалить оценку «' + g.subject + " — " + g.value + '»?')) return;
   if (g.payment) addTransaction("Отмена оценки: " + g.subject, { byn: -g.payment });
+  var penalty = penaltyPointsForGrade(g.value);
+  if (penalty) addTransaction("Отмена штрафа за оценку: " + g.subject, { points: -penalty, affectLevel: true });
   data.grades.splice(idx, 1);
   saveData();
+  if (penalty) { checkLevelUp(); checkGoalsReady(); }
   showToast("Оценка удалена");
 }
 
@@ -2135,8 +2153,8 @@ function getSubjectValue(sel, cus) {
 function updateGradeHint(sub) {
   var h = document.getElementById("gradeHint");
   if (!h) return;
-  if (isMath(sub)) h.innerHTML = '<strong>Математика:</strong><br>10, 9 → <strong>+5 BYN</strong> · 8 → <strong>+4 BYN</strong> · 7 → <strong>+2 BYN</strong><br>4, 5, 6 → 0 BYN · <strong>1, 2, 3 → −2 BYN</strong>';
-  else h.innerHTML = '10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>4, 5, 6 → 0 BYN · <strong>1, 2, 3 → −2 BYN</strong>';
+  if (isMath(sub)) h.innerHTML = '<strong>Математика:</strong><br>10, 9 → <strong>+5 BYN</strong> · 8 → <strong>+4 BYN</strong> · 7 → <strong>+2 BYN</strong><br>6 → 0 BYN · <strong>4, 5 → −5 BYN</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
+  else h.innerHTML = '10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>6 → 0 BYN · <strong>4, 5 → −5 BYN</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
 }
 
 function openWithdrawRequestModal() {
@@ -2789,7 +2807,7 @@ function bindEvents() {
     });
   }
 
-  var gradeForm = document.getElementById("gradeForm");
+    var gradeForm = document.getElementById("gradeForm");
   if (gradeForm) {
     gradeForm.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -2799,24 +2817,33 @@ function bindEvents() {
       if (!sub) return showToast("Выберите предмет");
       if (!Number.isInteger(v) || v < 2 || v > 10) return showToast("Оценка 2–10");
       var newPay = paymentForGrade(v, sub);
+      var newPenalty = penaltyPointsForGrade(v);
       if (editId) {
         var g = data.grades.find(function (x) { return x.id === editId; });
         if (!g) { closeModal(); return showToast("Не найдена"); }
+        var oldPenalty = penaltyPointsForGrade(g.value);
         var diff = newPay - g.payment;
+        var penaltyDiff = newPenalty - oldPenalty;
         g.subject = sub; g.value = v; g.payment = newPay;
         if (diff) addTransaction("Изменение оценки: " + sub, { byn: diff });
+        if (penaltyDiff) addTransaction("Изменение штрафа за оценку: " + sub, { points: penaltyDiff, affectLevel: true });
         closeModal();
         saveData();
+        if (penaltyDiff) { checkLevelUp(); checkGoalsReady(); }
         if (diff > 0) showToast("+" + diff + " BYN", "success");
         else if (diff < 0) showToast("−" + Math.abs(diff) + " BYN");
+        else if (penaltyDiff) showToast("Баллы обновлены: " + penaltyDiff);
         else showToast("Обновлено");
       } else {
         data.grades.unshift({ id: uniqueId(), subject: sub, value: v, payment: newPay, date: today() });
-        addTransaction("Оценка " + v + ": " + sub, { byn: newPay });
+        if (newPay) addTransaction("Оценка " + v + ": " + sub, { byn: newPay });
+        if (newPenalty) addTransaction("Штраф за оценку " + v + ": " + sub, { points: newPenalty, affectLevel: true });
         closeModal();
         saveData();
+        if (newPenalty) { checkLevelUp(); checkGoalsReady(); }
         if (newPay > 0) showToast("Начислено " + newPay + " BYN", "success");
         else if (newPay < 0) showToast("Штраф " + Math.abs(newPay) + " BYN");
+        else if (newPenalty) showToast("Штраф " + Math.abs(newPenalty) + " " + pluralPoints(Math.abs(newPenalty)));
         else showToast("Оценка добавлена");
       }
     });

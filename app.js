@@ -1081,6 +1081,7 @@ var shownApprovalIds = [];
 var pendingProfileAvatar = "👧";
 var currentDay = today();
 var lastSyncedData = null;
+var searchState = { items: [], activeIndex: -1 };
 
 var data = loadFromLocalStorage();
 
@@ -1109,10 +1110,12 @@ try {
             return;
           }
           setSyncStatus("online", "");
+          updateSyncLine("online");
           paintStartScreen();
           render();
         }, function () {
           setSyncStatus("offline", "Офлайн · изменения сохранятся позже");
+          updateSyncLine("offline");
           paintStartScreen();
           render();
         });
@@ -1120,6 +1123,7 @@ try {
       .catch(function (error) {
         console.error("Ошибка анонимного входа:", error);
         setSyncStatus("error", "Не удалось авторизоваться");
+        updateSyncLine("error");
         paintStartScreen();
         render();
       });
@@ -1167,12 +1171,17 @@ function saveData() {
   if (firebaseReady && firebaseRef) {
     var diff = computeDiff(data, lastSyncedData);
     if (Object.keys(diff).length > 0) {
+      updateSyncLine("saving");
       firebaseRef.update(diff)
         .then(function () {
           lastSyncedData = JSON.parse(JSON.stringify(data));
           setSyncStatus("online", "");
+          updateSyncLine("online");
         })
-        .catch(function () { setSyncStatus("offline", "Не удалось сохранить"); });
+        .catch(function () {
+          setSyncStatus("offline", "Не удалось сохранить");
+          updateSyncLine("offline");
+        });
     }
   }
   paintStartScreen();
@@ -1191,6 +1200,24 @@ function setSyncStatus(state, text) {
   if (state === "offline") banner.classList.add("is-offline");
   if (state === "error") banner.classList.add("is-error");
   label.textContent = text || "";
+}
+
+function updateSyncLine(state) {
+  var line = document.getElementById("syncLine");
+  if (!line) return;
+  line.classList.remove("is-saving", "is-online", "is-offline", "is-error");
+  if (state === "saving") {
+    line.classList.add("is-saving");
+  } else if (state === "online") {
+    line.classList.add("is-online");
+    setTimeout(function () {
+      line.classList.remove("is-online");
+    }, 1500);
+  } else if (state === "offline") {
+    line.classList.add("is-offline");
+  } else if (state === "error") {
+    line.classList.add("is-error");
+  }
 }
 
 function paintStaticIcons() {
@@ -1482,6 +1509,7 @@ function enterCabinet(role) {
 function returnToStart() {
   currentRole = "";
   closeModal();
+  closeSearch();
   document.getElementById("app").classList.add("hidden");
   document.getElementById("startScreen").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -2325,6 +2353,7 @@ function importDataFromJson(file) {
           lastSyncedData = JSON.parse(JSON.stringify(data));
           try { localStore.set(STORAGE_KEY, JSON.stringify(stripPhotos(data))); } catch (e) {}
           setSyncStatus("online", "");
+          updateSyncLine("online");
           closeModal();
           paintStartScreen();
           render();
@@ -2616,7 +2645,7 @@ function initPullToRefresh() {
 
   document.addEventListener("touchstart", function (e) {
     if (window.pageYOffset > 0) return;
-    if (e.target.closest(".modal, .bottom-nav, .fab-wrap, .modal-backdrop")) return;
+    if (e.target.closest(".modal, .bottom-nav, .fab-wrap, .modal-backdrop, .search-overlay")) return;
     startY = e.touches[0].pageY;
     pulling = true;
   }, { passive: true });
@@ -2698,6 +2727,303 @@ function handleShare() {
   }
 }
 
+/* ============================================================
+   ЭТАП 2: ГОРЯЧИЕ КЛАВИШИ
+   ============================================================ */
+function initHotkeys() {
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      if (!document.getElementById("searchOverlay").classList.contains("hidden")) {
+        e.preventDefault();
+        closeSearch();
+        return;
+      }
+      closeModal();
+      return;
+    }
+
+    var isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    var mod = isMac ? e.metaKey : e.ctrlKey;
+    if (!mod) return;
+
+    var key = e.key.toLowerCase();
+
+    if (key === "k") {
+      e.preventDefault();
+      if (!currentRole) return;
+      openSearch();
+      return;
+    }
+
+    if (!currentRole) return;
+
+    if (key === "1") { e.preventDefault(); returnToStart(); setTimeout(function () { enterCabinet("child"); }, 100); return; }
+    if (key === "2") { e.preventDefault(); returnToStart(); setTimeout(function () {
+      var inp = document.getElementById("passwordInput");
+      openModal("passwordModal");
+      if (inp) setTimeout(function () { inp.focus(); }, 150);
+    }, 100); return; }
+
+    if (key === "n" && currentRole === "parent") {
+      e.preventDefault();
+      var b1 = document.getElementById("openChoreModal");
+      if (b1) b1.click();
+      return;
+    }
+    if (key === "g" && currentRole === "parent") {
+      e.preventDefault();
+      var b2 = document.getElementById("openGradeModal");
+      if (b2) b2.click();
+      return;
+    }
+    if (key === "t" && currentRole === "parent") {
+      e.preventDefault();
+      var b3 = document.getElementById("openGoalModal");
+      if (b3) b3.click();
+      return;
+    }
+    if (key === "d") {
+      e.preventDefault();
+      toggleTheme();
+      return;
+    }
+  });
+}
+
+/* ============================================================
+   ЭТАП 2: ПОИСК Ctrl+K
+   ============================================================ */
+function openSearch() {
+  var overlay = document.getElementById("searchOverlay");
+  var input = document.getElementById("searchInput");
+  if (!overlay || !input) return;
+  overlay.classList.remove("hidden");
+  input.value = "";
+  renderSearchResults("");
+  setTimeout(function () { input.focus(); }, 50);
+}
+
+function closeSearch() {
+  var overlay = document.getElementById("searchOverlay");
+  var input = document.getElementById("searchInput");
+  if (!overlay) return;
+  overlay.classList.add("hidden");
+  if (input) input.value = "";
+  searchState.items = [];
+  searchState.activeIndex = -1;
+}
+
+function getSearchItems() {
+  var items = [];
+  var isParent = currentRole === "parent";
+
+  data.chores.forEach(function (c) {
+    items.push({
+      kind: "chore",
+      icon: "📋",
+      title: c.title,
+      hint: c.description || (c.reward + " " + pluralPoints(c.reward)),
+      action: function () {
+        if (isParent) {
+          var btn = document.querySelector('[data-action="edit-chore"][data-id="' + c.id + '"]');
+          if (btn) btn.click();
+        } else {
+          var btn2 = document.querySelector('[data-action="complete-chore"][data-id="' + c.id + '"]');
+          if (btn2) btn2.click();
+        }
+      },
+      search: (c.title + " " + (c.description || "")).toLowerCase()
+    });
+  });
+
+  data.grades.forEach(function (g) {
+    items.push({
+      kind: "grade",
+      icon: gradeEmoji(g.value),
+      title: g.subject + " — " + g.value,
+      hint: g.date + (g.payment ? " · " + (g.payment > 0 ? "+" : "") + g.payment + " BYN" : ""),
+      action: function () {
+        if (isParent) {
+          var btn = document.querySelector('[data-action="edit-grade"][data-id="' + g.id + '"]');
+          if (btn) btn.click();
+        }
+      },
+      search: (g.subject + " " + g.value).toLowerCase()
+    });
+  });
+
+  data.goals.forEach(function (g, i) {
+    items.push({
+      kind: "goal",
+      icon: "🎯",
+      title: g.title,
+      hint: g.price + " " + pluralPoints(g.price),
+      action: function () {
+        if (isParent) {
+          var btn = document.querySelector('[data-action="edit-goal"][data-index="' + i + '"]');
+          if (btn) btn.click();
+        } else if (data.points >= g.price) {
+          claimGoal(i);
+        }
+      },
+      search: g.title.toLowerCase()
+    });
+  });
+
+  if (isParent) {
+    items.push({
+      kind: "action", icon: "📋", title: "Новое задание", hint: "Ctrl+N",
+      action: function () { var b = document.getElementById("openChoreModal"); if (b) b.click(); },
+      search: "новое задание создать добавить chore"
+    });
+    items.push({
+      kind: "action", icon: "🎓", title: "Новая оценка", hint: "Ctrl+G",
+      action: function () { var b = document.getElementById("openGradeModal"); if (b) b.click(); },
+      search: "новая оценка создать добавить grade"
+    });
+    items.push({
+      kind: "action", icon: "🎯", title: "Новая цель", hint: "Ctrl+T",
+      action: function () { var b = document.getElementById("openGoalModal"); if (b) b.click(); },
+      search: "новая цель создать добавить goal"
+    });
+    items.push({
+      kind: "action", icon: "📊", title: "Отчёт за неделю", hint: "",
+      action: function () { openWeeklyReport(); },
+      search: "отчёт неделя статистика report"
+    });
+    items.push({
+      kind: "action", icon: "💰", title: "Управление балансом", hint: "",
+      action: function () { openBalanceManageModal(); },
+      search: "баланс деньги управление balance"
+    });
+  }
+
+  items.push({
+    kind: "action", icon: "🌙", title: "Переключить тему", hint: "Ctrl+D",
+    action: function () { toggleTheme(); },
+    search: "тема тёмная светлая theme dark light"
+  });
+
+  return items;
+}
+
+function renderSearchResults(query) {
+  var el = document.getElementById("searchResults");
+  if (!el) return;
+  var q = String(query || "").trim().toLowerCase();
+
+  var all = getSearchItems();
+  var filtered = q ? all.filter(function (item) { return item.search.indexOf(q) >= 0; }) : all;
+  filtered = filtered.slice(0, 20);
+
+  searchState.items = filtered;
+  searchState.activeIndex = filtered.length ? 0 : -1;
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="search-empty"><span class="search-empty__emoji">🔍</span>Ничего не найдено</div>';
+    return;
+  }
+
+  var groups = { chore: [], grade: [], goal: [], action: [] };
+  filtered.forEach(function (item) {
+    if (groups[item.kind]) groups[item.kind].push(item);
+  });
+
+  var labels = { chore: "Задания", grade: "Оценки", goal: "Цели", action: "Действия" };
+  var globalIdx = 0;
+  var html = "";
+  ["chore", "grade", "goal", "action"].forEach(function (kind) {
+    if (!groups[kind].length) return;
+    html += '<span class="search-group__label">' + labels[kind] + '</span>';
+    groups[kind].forEach(function (item) {
+      var idx = globalIdx++;
+      html += '<div class="search-result ' + (idx === 0 ? "is-active" : "") + '" data-idx="' + idx + '">' +
+        '<div class="search-result__icon">' + item.icon + '</div>' +
+        '<div class="search-result__body">' +
+          '<div class="search-result__title">' + escapeHtml(item.title) + '</div>' +
+          (item.hint ? '<div class="search-result__hint">' + escapeHtml(item.hint) + '</div>' : '') +
+        '</div>' +
+        (item.hint && item.hint.indexOf("Ctrl+") === 0 ? '<span class="search-result__kbd">' + item.hint + '</span>' : '') +
+      '</div>';
+    });
+  });
+  el.innerHTML = html;
+}
+
+function updateSearchActive() {
+  var el = document.getElementById("searchResults");
+  if (!el) return;
+  var items = el.querySelectorAll(".search-result");
+  items.forEach(function (it, i) {
+    it.classList.toggle("is-active", i === searchState.activeIndex);
+  });
+  var active = el.querySelector(".search-result.is-active");
+  if (active) active.scrollIntoView({ block: "nearest" });
+}
+
+function executeSearchItem(idx) {
+  var item = searchState.items[idx];
+  if (!item) return;
+  closeSearch();
+  setTimeout(function () { item.action(); }, 120);
+}
+
+function initSearch() {
+  var overlay = document.getElementById("searchOverlay");
+  var input = document.getElementById("searchInput");
+  var closeBtn = document.getElementById("searchCloseBtn");
+  var results = document.getElementById("searchResults");
+  if (!overlay || !input) return;
+
+  input.addEventListener("input", function () {
+    renderSearchResults(input.value);
+  });
+
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!searchState.items.length) return;
+      searchState.activeIndex = (searchState.activeIndex + 1) % searchState.items.length;
+      updateSearchActive();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!searchState.items.length) return;
+      searchState.activeIndex = (searchState.activeIndex - 1 + searchState.items.length) % searchState.items.length;
+      updateSearchActive();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      executeSearchItem(searchState.activeIndex);
+    }
+  });
+
+  if (closeBtn) closeBtn.addEventListener("click", closeSearch);
+
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) closeSearch();
+  });
+
+  if (results) {
+    results.addEventListener("click", function (e) {
+      var item = e.target.closest(".search-result");
+      if (!item) return;
+      var idx = Number(item.dataset.idx);
+      if (Number.isInteger(idx)) executeSearchItem(idx);
+    });
+    results.addEventListener("mousemove", function (e) {
+      var item = e.target.closest(".search-result");
+      if (!item) return;
+      var idx = Number(item.dataset.idx);
+      if (Number.isInteger(idx) && idx !== searchState.activeIndex) {
+        searchState.activeIndex = idx;
+        updateSearchActive();
+      }
+    });
+  }
+}
+
+/* ============================================================
+   ПРИВЯЗКА СОБЫТИЙ
+   ============================================================ */
 function bindEvents() {
   var childBtn = document.getElementById("childLogin");
   if (childBtn) childBtn.addEventListener("click", function (e) { e.preventDefault(); enterCabinet("child"); });
@@ -2760,6 +3086,7 @@ function bindEvents() {
 
     if (action === "toggle-theme") return toggleTheme();
     if (action === "share") return handleShare();
+    if (action === "open-search") return openSearch();
     if (action === "open-notifications") return openNotificationsModal();
     if (action === "change-cabinet") return returnToStart();
     if (action === "open-advanced") {
@@ -2875,8 +3202,6 @@ function bindEvents() {
       return openModal("goalModal");
     }
   });
-
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
 
   var elRepeat = document.getElementById("choreRepeat");
   if (elRepeat) elRepeat.addEventListener("change", syncChoreDaysVisibility);
@@ -3151,7 +3476,7 @@ function bindEvents() {
   bindStartScreenTap();
 }
 
-console.log("Моя копилка v51 загружена (Этап 1: bottom-nav, FAB, pull-to-refresh, share)");
+console.log("Моя копилка v52 загружена (Этап 2: горячие клавиши, поиск Ctrl+K, полоска синхронизации)");
 
 initTheme();
 paintStaticIcons();
@@ -3162,6 +3487,8 @@ initScrollTopButton();
 initBottomNav();
 initFab();
 initPullToRefresh();
+initHotkeys();
+initSearch();
 
 setInterval(checkDayChange, DAY_CHECK_INTERVAL_MS);
 document.addEventListener("visibilitychange", function () {

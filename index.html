@@ -18,6 +18,9 @@
 </head>
 <body>
 
+<!-- Полоска синхронизации -->
+<div class="sync-line" id="syncLine"></div>
+
 <div id="startScreen" class="screen-start">
   <section class="welcome-card">
     <div class="piggy-scene" id="piggyScene">
@@ -74,6 +77,12 @@
         <div class="child-hero__sub" id="childHeroSub">Уровень: Яйцо</div>
       </div>
       <div class="hero-tools">
+        <button class="hero-tool" type="button" data-action="open-search" title="Поиск (Ctrl+K)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16" y1="16" x2="21" y2="21"></line>
+          </svg>
+        </button>
         <button class="hero-tool" type="button" data-action="share" title="Поделиться">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
@@ -102,6 +111,12 @@
         <div class="parent-hero__sub" id="parentHeroSub">Управление копилкой и проверка</div>
       </div>
       <div class="hero-tools">
+        <button class="hero-tool" type="button" data-action="open-search" title="Поиск (Ctrl+K)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16" y1="16" x2="21" y2="21"></line>
+          </svg>
+        </button>
         <button class="hero-tool" type="button" data-action="share" title="Поделиться">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
@@ -310,6 +325,18 @@
     <polyline points="6 14 12 8 18 14"></polyline>
   </svg>
 </button>
+
+<!-- Оверлей поиска (Ctrl+K) -->
+<div class="search-overlay hidden" id="searchOverlay">
+  <div class="search-modal">
+    <div class="search-modal__input-wrap">
+      <span class="search-modal__icon">🔍</span>
+      <input type="text" id="searchInput" class="search-modal__input" placeholder="Поиск: задания, оценки, цели, действия…" autocomplete="off">
+      <button type="button" class="search-modal__close" id="searchCloseBtn">Esc</button>
+    </div>
+    <div class="search-modal__results" id="searchResults"></div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 

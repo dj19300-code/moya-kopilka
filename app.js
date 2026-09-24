@@ -2510,6 +2510,194 @@ function checkDayChange() {
   }
 }
 
+/* ============================================================
+   ПЛАВАЮЩЕЕ НИЖНЕЕ МЕНЮ
+   ============================================================ */
+function initBottomNav() {
+  var nav = document.getElementById("bottomNav");
+  if (!nav) return;
+
+  var sections = {
+    top: document.querySelector(".container"),
+    chores: document.getElementById("choresSection"),
+    grades: document.getElementById("gradesSection"),
+    goals: document.getElementById("goalsSection")
+  };
+  var buttons = nav.querySelectorAll(".bottom-nav__btn");
+
+  function setActive(key) {
+    buttons.forEach(function (b) {
+      b.classList.toggle("is-active", b.dataset.nav === key);
+    });
+  }
+
+  buttons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var key = btn.dataset.nav;
+      if (key === "profile") {
+        openProfileModal();
+        return;
+      }
+      var target = sections[key];
+      if (!target) return;
+      var offset = 70;
+      var y = target.getBoundingClientRect().top + window.pageYOffset - offset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+      setActive(key);
+    });
+  });
+
+  var ticking = false;
+  function updateActive() {
+    ticking = false;
+    if (!currentRole) return;
+    var y = window.pageYOffset + 160;
+    var active = "top";
+    ["chores", "grades", "goals"].forEach(function (key) {
+      var el = sections[key];
+      if (el && el.offsetTop <= y) active = key;
+    });
+    setActive(active);
+  }
+  window.addEventListener("scroll", function () {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(updateActive);
+  }, { passive: true });
+  updateActive();
+}
+
+/* ============================================================
+   FAB — быстрые действия
+   ============================================================ */
+function initFab() {
+  var fab = document.getElementById("fab");
+  var wrap = document.getElementById("fabWrap");
+  if (!fab || !wrap) return;
+
+  function close() { wrap.classList.remove("is-open"); }
+
+  fab.addEventListener("click", function (e) {
+    e.stopPropagation();
+    wrap.classList.toggle("is-open");
+  });
+
+  wrap.querySelectorAll("[data-fab]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      close();
+      var kind = btn.dataset.fab;
+      if (kind === "chore") {
+        var b = document.getElementById("openChoreModal");
+        if (b) b.click();
+      } else if (kind === "grade") {
+        var b2 = document.getElementById("openGradeModal");
+        if (b2) b2.click();
+      } else if (kind === "goal") {
+        var b3 = document.getElementById("openGoalModal");
+        if (b3) b3.click();
+      }
+    });
+  });
+
+  document.addEventListener("click", close);
+}
+
+/* ============================================================
+   PULL-TO-REFRESH
+   ============================================================ */
+function initPullToRefresh() {
+  var indicator = document.getElementById("ptrIndicator");
+  if (!indicator) return;
+
+  var startY = 0;
+  var pulling = false;
+  var threshold = 80;
+
+  document.addEventListener("touchstart", function (e) {
+    if (window.pageYOffset > 0) return;
+    if (e.target.closest(".modal, .bottom-nav, .fab-wrap, .modal-backdrop")) return;
+    startY = e.touches[0].pageY;
+    pulling = true;
+  }, { passive: true });
+
+  document.addEventListener("touchmove", function (e) {
+    if (!pulling) return;
+    if (window.pageYOffset > 0) { pulling = false; return; }
+    var diff = e.touches[0].pageY - startY;
+    if (diff > 0) {
+      var progress = Math.min(diff / threshold, 1);
+      indicator.style.transform = "translate(-50%, " + (-60 + progress * 68) + "px)";
+      indicator.style.opacity = progress;
+    }
+  }, { passive: true });
+
+  document.addEventListener("touchend", function (e) {
+    if (!pulling) return;
+    pulling = false;
+    var diff = (e.changedTouches && e.changedTouches[0])
+      ? e.changedTouches[0].pageY - startY
+      : 0;
+
+    if (diff > threshold) {
+      indicator.classList.add("is-refreshing");
+      indicator.style.transform = "translate(-50%, 8px)";
+      indicator.style.opacity = 1;
+      indicator.querySelector(".ptr-indicator__text").textContent = "Обновление…";
+
+      var done = function (ok) {
+        indicator.querySelector(".ptr-indicator__text").textContent = ok ? "Готово ✓" : "Ошибка";
+        setTimeout(function () {
+          indicator.classList.remove("is-refreshing");
+          indicator.style.transform = "translate(-50%, -60px)";
+          indicator.style.opacity = 0;
+        }, 700);
+      };
+
+      if (firebaseReady && firebaseRef) {
+        firebaseRef.once("value").then(function (snap) {
+          var raw = snap.val();
+          if (raw) data = normalize(raw);
+          paintStartScreen();
+          render();
+          done(true);
+        }).catch(function () { done(false); });
+      } else {
+        paintStartScreen();
+        render();
+        setTimeout(function () { done(true); }, 400);
+      }
+    } else {
+      indicator.style.transform = "translate(-50%, -60px)";
+      indicator.style.opacity = 0;
+    }
+    startY = 0;
+  }, { passive: true });
+}
+
+/* ============================================================
+   SHARE — нативное «Поделиться»
+   ============================================================ */
+function handleShare() {
+  var shareData = {
+    title: "Моя копилка",
+    text: "Семейная копилка: баллы, задания и цели",
+    url: window.location.href
+  };
+
+  if (navigator.share) {
+    navigator.share(shareData).catch(function () {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(shareData.url).then(function () {
+      showToast("Ссылка скопирована", "success");
+    }).catch(function () {
+      showToast("Не удалось скопировать");
+    });
+  } else {
+    showToast("Скопируйте адрес из строки браузера");
+  }
+}
+
 function bindEvents() {
   var childBtn = document.getElementById("childLogin");
   if (childBtn) childBtn.addEventListener("click", function (e) { e.preventDefault(); enterCabinet("child"); });
@@ -2571,6 +2759,7 @@ function bindEvents() {
     var dataIndex = Number(btn.dataset.index);
 
     if (action === "toggle-theme") return toggleTheme();
+    if (action === "share") return handleShare();
     if (action === "open-notifications") return openNotificationsModal();
     if (action === "change-cabinet") return returnToStart();
     if (action === "open-advanced") {
@@ -2962,7 +3151,7 @@ function bindEvents() {
   bindStartScreenTap();
 }
 
-console.log("Моя копилка v50 загружена (оценки 4/5 → −5 баллов)");
+console.log("Моя копилка v51 загружена (Этап 1: bottom-nav, FAB, pull-to-refresh, share)");
 
 initTheme();
 paintStaticIcons();
@@ -2970,6 +3159,9 @@ renderChoreTemplateSelect();
 bindEvents();
 paintStartScreen();
 initScrollTopButton();
+initBottomNav();
+initFab();
+initPullToRefresh();
 
 setInterval(checkDayChange, DAY_CHECK_INTERVAL_MS);
 document.addEventListener("visibilitychange", function () {

@@ -808,6 +808,7 @@ function piggyCoinSvg() {
     '</svg>';
 }
 
+
 function paintStartScreen() {
   var piggySvgEl = document.getElementById("piggySvg");
   if (piggySvgEl) piggySvgEl.innerHTML = piggySvg();
@@ -2054,7 +2055,7 @@ function approveGrade(id) {
   var s = "";
   if (p > 0) s = " · +" + p + " BYN";
   else if (p < 0) s = " · " + p + " BYN";
-  if (penalty) s += " · " + penalty + " " + pluralPoints(Math.abs(penalty));
+  if (penalty) s += " · " + (penalty > 0 ? "+" : "−") + Math.abs(penalty) + " " + pluralPoints(Math.abs(penalty));
   addNotification("child", "Оценка «" + r.subject + " — " + r.value + "» подтверждена" + s, "🎓");
   saveData();
   if (p > 0) showToast("Начислено " + p + " BYN", "success");
@@ -2153,8 +2154,8 @@ function getSubjectValue(sel, cus) {
 function updateGradeHint(sub) {
   var h = document.getElementById("gradeHint");
   if (!h) return;
-  if (isMath(sub)) h.innerHTML = '<strong>Математика:</strong><br>10, 9 → <strong>+5 BYN</strong> · 8 → <strong>+4 BYN</strong> · 7 → <strong>+2 BYN</strong><br>6 → 0 BYN · <strong>4, 5 → −5 BYN</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
-  else h.innerHTML = '10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>6 → 0 BYN · <strong>4, 5 → −5 BYN</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
+  if (isMath(sub)) h.innerHTML = '<strong>Математика:</strong><br>10, 9 → <strong>+5 BYN</strong> · 8 → <strong>+4 BYN</strong> · 7 → <strong>+2 BYN</strong><br>6 → 0 · <strong>4, 5 → −5 баллов</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
+  else h.innerHTML = '10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>6 → 0 · <strong>4, 5 → −5 баллов</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
 }
 
 function openWithdrawRequestModal() {
@@ -2807,7 +2808,7 @@ function bindEvents() {
     });
   }
 
-    var gradeForm = document.getElementById("gradeForm");
+  var gradeForm = document.getElementById("gradeForm");
   if (gradeForm) {
     gradeForm.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -2832,7 +2833,7 @@ function bindEvents() {
         if (penaltyDiff) { checkLevelUp(); checkGoalsReady(); }
         if (diff > 0) showToast("+" + diff + " BYN", "success");
         else if (diff < 0) showToast("−" + Math.abs(diff) + " BYN");
-        else if (penaltyDiff) showToast("Баллы обновлены: " + penaltyDiff);
+        else if (penaltyDiff) showToast((penaltyDiff > 0 ? "+" : "−") + Math.abs(penaltyDiff) + " " + pluralPoints(Math.abs(penaltyDiff)));
         else showToast("Обновлено");
       } else {
         data.grades.unshift({ id: uniqueId(), subject: sub, value: v, payment: newPay, date: today() });
@@ -2961,7 +2962,7 @@ function bindEvents() {
   bindStartScreenTap();
 }
 
-console.log("Моя копилка v49 загружена (падежи исправлены)");
+console.log("Моя копилка v50 загружена (оценки 4/5 → −5 баллов)");
 
 initTheme();
 paintStaticIcons();

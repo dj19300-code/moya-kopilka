@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#8B5CF6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Копилка">
+<link rel="apple-touch-icon" href="web-app-manifest-192x192.png">
 <title>Моя копилка</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -441,7 +444,7 @@
       <label>Оценка (2–10)<input id="gradeValue" type="number" min="2" max="10" step="1" inputmode="numeric" required></label>
       <p class="modal-hint" id="gradeHint">
         10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>
-        6 → 0 BYN · <strong>4, 5 → −5 BYN</strong> · <strong>1, 2, 3 → −2 BYN</strong>
+        6 → 0 BYN · <strong>4, 5 → −5 баллов</strong> · <strong>1, 2, 3 → −2 BYN</strong>
       </p>
       <div class="modal-actions">
         <button class="button button--light" type="button" data-close-modal>Отмена</button>
@@ -592,6 +595,5 @@
     });
   }
 </script>
-</body>
 </body>
 </html>

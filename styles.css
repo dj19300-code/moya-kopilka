@@ -15,7 +15,7 @@ body.dark .progress { background: #3A3555; }
 body.dark .modal { background: #2A2440; color: #F0E9F5; }
 body.dark .modal input, body.dark .modal select { background: #1E1B2E; color: #F0E9F5; border-color: #3A3555; }
 body.dark .modal-hint { color: #A89BB0; }
-body.dark .button--light { background: #3A3555; color: #F0E9F5; }
+body.dark .button--light { background: #3A3555; color: #E8DDFF; }
 body.dark .goal-progress__bar { background: #3A3555; }
 body.dark .goal-progress__milestone { background: #2A2440; border-color: #4A4565; color: #7A7190; }
 body.dark .notification-item--unread { background: #2A2045; border-color: #5B3D8A; }
@@ -48,15 +48,15 @@ body.dark #photoPreview { border-color: #3A3555; background: #1E1B2E; }
 body.dark .chore-photo-thumb { border-color: #3A3555; }
 body.dark .toast { background: #2A2440; color: #F0E9F5; }
 body.dark .goal-hint { color: #F9A8D4; }
-body.dark .goal-percent { color: #F9A8D4; }
-body.dark .goal-percent--zero { color: #A89BB0; }
+body.dark .goal-hero__percent--zero,
+body.dark .goal-mini__percent--zero { color: #A89BB0; }
 body.dark .chore-daily-count { background: #3A3555; color: #C4B8CE; }
 body.dark .screen-start { background:
   radial-gradient(circle at 15% 15%, rgba(167, 139, 250, 0.20) 0%, transparent 45%),
   radial-gradient(circle at 85% 85%, rgba(244, 114, 182, 0.18) 0%, transparent 50%),
   linear-gradient(135deg, #2D1B5E 0%, #4C1D95 45%, #831843 100%); }
 body.dark h2 { color: #F0E9F5; }
-body.dark .summary-card__deco { filter: drop-shadow(0 0 20px rgba(167, 139, 250, .35)); }
+body.dark .summary-card__deco { filter: drop-shadow(0 0 20px rgba(167, 139, 250, .35)); opacity: 0.95; }
 body.dark .empty-state__illustration { filter: drop-shadow(0 0 14px rgba(167, 139, 250, .25)); }
 body.dark .goal-hero { background: linear-gradient(135deg, #2A2440, #1E1B2E); border-color: #3A3555; }
 body.dark .goal-hero.is-ready { border-color: #3E5A6E; background: linear-gradient(135deg, #2A2440, #223040); }
@@ -720,7 +720,6 @@ body.dark .button--light { background: #3A3555; color: #E8DDFF; }
 body.dark .button--danger { color: #FFA6A6; background: #3D2424; }
 .button--gold { color: #FFFFFF; background: linear-gradient(135deg, #F472B6, #DB2777); box-shadow: 0 6px 18px rgba(244, 114, 182, .4); }
 .button--small { min-height: 38px; padding: 8px 14px; font-size: 13px; border-radius: 12px; }
-.button--icon { min-height: 44px; padding: 8px 14px; font-size: 16px; }
 
 .list { display: grid; gap: 10px; }
 .list-item { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 16px 18px; border: 1px solid #E8DDFF; border-radius: 16px; align-items: center; background: #FFFFFF; }
@@ -767,9 +766,6 @@ body.dark .button--danger { color: #FFA6A6; background: #3D2424; }
 .goal-progress__milestones { position: absolute; left: 0; right: 0; top: 0; height: 16px; pointer-events: none; }
 .goal-progress__milestone { position: absolute; top: 50%; width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; border: 3px solid #E8DDFF; transform: translate(-50%, -50%); display: grid; place-items: center; font-size: 10px; font-weight: 800; color: #A89BB0; transition: all .3s; font-family: 'Nunito', sans-serif; }
 .goal-progress__milestone.is-reached { background: linear-gradient(135deg, #F472B6, #8B5CF6); border-color: #7C3AED; color: #FFFFFF; box-shadow: 0 0 0 4px rgba(139, 92, 246, .25); transform: translate(-50%, -50%) scale(1.15); }
-.goal-percent { font-size: 24px; font-weight: 800; color: #DB2777; line-height: 1; font-family: 'Fredoka', sans-serif; }
-.goal-percent--zero { color: #8B7DA5; }
-.goal-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 3px; flex-wrap: wrap; }
 .goal-left { color: #8B7DA5; font-size: 13px; font-weight: 600; }
 .goal-hint { color: #DB2777; font-size: 13px; font-weight: 700; margin-top: 4px; }
 
@@ -893,7 +889,7 @@ body.dark .button--danger { color: #FFA6A6; background: #3D2424; }
 .confetti-piece { position: fixed; top: -20px; width: 10px; height: 14px; z-index: 999; pointer-events: none; border-radius: 3px; animation: confettiFall 2.6s forwards; }
 @keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
 
-@media (max-width: 900px) { .summary-grid { grid-template-columns: 1fr 1fr; } }
+/* ============ Адаптив ============ */
 @media (max-width: 640px) {
   .summary-grid { grid-template-columns: 1fr; }
   .role-grid { grid-template-columns: 1fr; }
@@ -1023,4 +1019,13 @@ body.dark .button--danger { color: #FFA6A6; background: #3D2424; }
   .child-hero__avatar { width: 54px; height: 54px; font-size: 26px; }
   .child-hero__avatar-badge { width: 18px; height: 18px; font-size: 10px; }
   .parent-hero__guffy { width: 54px; height: 74px; }
+}
+
+/* ============ Уменьшение движения (для пользователей с настройкой ОС) ============ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

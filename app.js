@@ -19,7 +19,7 @@ var SCROLL_TOP_THRESHOLD = 400;
 var FAMILY_ID = "moya-kopilka-7k3m9p2x8q10DenL";
 
 var firebaseConfig = {
-  apiKey: "AIzaSyBL8WTvJI4AN2C5E_PYkGy04sjEkD-7jjk",
+  apiKey: "AIzaSyBnIaSEK1fIiL8U709XOjwAPoTPdxQ_3Hc",
   authDomain: "family-balance-2fc27.firebaseapp.com",
   databaseURL: "https://family-balance-2fc27-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "family-balance-2fc27",

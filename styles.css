@@ -1481,3 +1481,155 @@ body.dark .search-group__label { color: #A89BB0; }
   }
   .search-modal__input { font-size: 16px; }
 }
+
+/* ============================================================
+   ЭТАП 3: МАССОВЫЕ ОПЕРАЦИИ, ДУБЛИРОВАНИЕ, ФИЛЬТРЫ
+   ============================================================ */
+
+/* Toolbar массовых операций в проверке заданий */
+.pending-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #F0E9FF;
+  border-radius: 14px;
+  align-items: center;
+}
+body.dark .pending-toolbar { background: #3A3555; }
+
+.pending-toolbar__count {
+  font-size: 12px;
+  font-weight: 800;
+  color: #6D28D9;
+  margin-right: auto;
+  font-family: 'Nunito', sans-serif;
+  letter-spacing: .2px;
+}
+body.dark .pending-toolbar__count { color: #C4B5FD; }
+
+.pending-toolbar .button { min-height: 36px; padding: 6px 12px; font-size: 12px; }
+
+/* Чекбокс в pending item */
+.pending-item-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.pending-item-wrap > div { flex: 1; min-width: 0; }
+
+.pending-checkbox {
+  flex-shrink: 0;
+  padding-top: 2px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  display: block;
+}
+.pending-checkbox input[type=checkbox] {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 2px solid #C4B5FD;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #FFFFFF;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  margin: 0;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.pending-checkbox input[type=checkbox]:active { transform: scale(.9); }
+.pending-checkbox input[type=checkbox]:checked {
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  border-color: #7C3AED;
+}
+.pending-checkbox input[type=checkbox]:checked::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+}
+body.dark .pending-checkbox input[type=checkbox] {
+  background: #1E1B2E;
+  border-color: #4A4565;
+}
+body.dark .pending-checkbox input[type=checkbox]:checked {
+  background: linear-gradient(135deg, #A78BFA, #7C3AED);
+  border-color: #A78BFA;
+}
+
+/* Выделенный pending item */
+.list-item.is-selected {
+  background: #F0E9FF;
+  border-color: #8B5CF6;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, .18);
+}
+body.dark .list-item.is-selected {
+  background: #3A2A55;
+  border-color: #A78BFA;
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, .28);
+}
+
+/* ============ Фильтры оценок ============ */
+.grade-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.grade-filters select {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 10px 30px 10px 12px;
+  border: 2px solid #E8DDFF;
+  border-radius: 12px;
+  font: inherit;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  background: #FAF6FF;
+  color: #3B1F5C;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238B7DA5' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.grade-filters select:focus {
+  outline: none;
+  border-color: #8B5CF6;
+}
+body.dark .grade-filters select {
+  background-color: #1E1B2E;
+  color: #F0E9F5;
+  border-color: #3A3555;
+}
+body.dark .grade-filters select:focus { border-color: #A78BFA; }
+
+/* Кнопка "Копия" */
+.button--copy {
+  background: #FFF0E8;
+  color: #C2410C;
+}
+body.dark .button--copy {
+  background: #4A2810;
+  color: #FFB088;
+}
+
+@media (max-width: 640px) {
+  .pending-toolbar { padding: 8px 10px; gap: 6px; }
+  .pending-toolbar .button { min-height: 34px; padding: 5px 10px; font-size: 11px; }
+  .pending-checkbox input[type=checkbox] { width: 22px; height: 22px; }
+  .grade-filters select { flex: 1 1 100%; }
+}
+

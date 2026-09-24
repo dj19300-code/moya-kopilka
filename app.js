@@ -4,8 +4,8 @@ var STORAGE_KEY = "familyBalanceV44";
 var THEME_KEY = "familyBalanceTheme";
 var PARENT_PASSWORD = "1234";
 var EXCHANGE_RATE = 5;
-var HISTORY_LIMIT = 10;
-var GRADES_LIMIT = 10;
+var HISTORY_LIMIT = 5;
+var GRADES_LIMIT = 5;
 var NOTIF_LIMIT = 100;
 var PHOTO_MAX_SIZE = 640;
 var PHOTO_QUALITY = 0.7;
@@ -1082,6 +1082,8 @@ var pendingProfileAvatar = "👧";
 var currentDay = today();
 var lastSyncedData = null;
 var searchState = { items: [], activeIndex: -1 };
+var pendingSelectionIds = [];
+var gradeFilter = { subject: "all", value: "all", period: "all" };
 
 var data = loadFromLocalStorage();
 
@@ -1510,6 +1512,8 @@ function returnToStart() {
   currentRole = "";
   closeModal();
   closeSearch();
+  gradeFilter = { subject: "all", value: "all", period: "all" };
+  pendingSelectionIds = [];
   document.getElementById("app").classList.add("hidden");
   document.getElementById("startScreen").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -1644,7 +1648,9 @@ function renderChores(isParent) {
     }
 
     var pb = isParent
-      ? '<button class="button button--light button--small" type="button" data-action="edit-chore" data-id="' + c.id + '">Изменить</button> <button class="button button--danger button--small" type="button" data-action="delete-chore" data-id="' + c.id + '">Удалить</button>'
+      ? '<button class="button button--copy button--small" type="button" data-action="duplicate-chore" data-id="' + c.id + '" title="Создать копию">Копия</button> ' +
+        '<button class="button button--light button--small" type="button" data-action="edit-chore" data-id="' + c.id + '">Изменить</button> ' +
+        '<button class="button button--danger button--small" type="button" data-action="delete-chore" data-id="' + c.id + '">Удалить</button>'
       : "";
 
     var showR = isParent || (c.repeat && c.repeat !== "daily");
@@ -1678,8 +1684,69 @@ function renderChores(isParent) {
   el.innerHTML = html;
 }
 
+function filterGrades(grades) {
+  return grades.filter(function (g) {
+    if (gradeFilter.subject !== "all" && g.subject !== gradeFilter.subject) return false;
+    if (gradeFilter.value !== "all") {
+      var v = g.value;
+      if (gradeFilter.value === "high" && v < 9) return false;
+      if (gradeFilter.value === "good" && (v < 7 || v > 8)) return false;
+      if (gradeFilter.value === "mid" && (v < 5 || v > 6)) return false;
+      if (gradeFilter.value === "low" && (v < 2 || v > 4)) return false;
+    }
+    if (gradeFilter.period !== "all") {
+      var days = gradeFilter.period === "week" ? 7 : 30;
+      var cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      if (g.date < formatDate(cutoff)) return false;
+    }
+    return true;
+  });
+}
+
+function renderGradeFilters() {
+  var el = document.getElementById("gradeFilters");
+  if (!el) return;
+
+  var subjects = {};
+  data.grades.forEach(function (g) { subjects[g.subject] = true; });
+  var subjectList = Object.keys(subjects).sort();
+
+  var subjectHtml = '<option value="all">📚 Все предметы</option>';
+  subjectList.forEach(function (s) {
+    subjectHtml += '<option value="' + escapeHtml(s) + '"' + (gradeFilter.subject === s ? " selected" : "") + '>' + escapeHtml(s) + '</option>';
+  });
+
+  el.innerHTML =
+    '<select id="gradeFilterSubject">' + subjectHtml + '</select>' +
+    '<select id="gradeFilterValue">' +
+      '<option value="all"' + (gradeFilter.value === "all" ? " selected" : "") + '>Все оценки</option>' +
+      '<option value="high"' + (gradeFilter.value === "high" ? " selected" : "") + '>⭐ 9–10</option>' +
+      '<option value="good"' + (gradeFilter.value === "good" ? " selected" : "") + '>👍 7–8</option>' +
+      '<option value="mid"' + (gradeFilter.value === "mid" ? " selected" : "") + '>😐 5–6</option>' +
+      '<option value="low"' + (gradeFilter.value === "low" ? " selected" : "") + '>😟 2–4</option>' +
+    '</select>' +
+    '<select id="gradeFilterPeriod">' +
+      '<option value="all"' + (gradeFilter.period === "all" ? " selected" : "") + '>За всё время</option>' +
+      '<option value="week"' + (gradeFilter.period === "week" ? " selected" : "") + '>За неделю</option>' +
+      '<option value="month"' + (gradeFilter.period === "month" ? " selected" : "") + '>За месяц</option>' +
+    '</select>';
+}
+
 function renderGrades(isParent) {
+  var filtersEl = document.getElementById("gradeFilters");
   var has = data.grades.length > 0 || data.gradeRequests.length > 0;
+
+  if (filtersEl) {
+    if (isParent && data.grades.length > 0) {
+      filtersEl.style.display = "flex";
+      renderGradeFilters();
+    } else {
+      filtersEl.style.display = "none";
+      filtersEl.innerHTML = "";
+    }
+  }
+
   var el = document.getElementById("gradesList");
   if (!has) {
     var txt = guffyReplicasOn()
@@ -1688,23 +1755,31 @@ function renderGrades(isParent) {
     el.innerHTML = '<div class="empty-state"><div class="empty-state__illustration">' + guffyWithDiary(getGuffyEmotion()) + '</div><div class="empty-state__text">' + txt + '</div></div>';
     return;
   }
-  var sortedGrades = data.grades.slice().sort(function (a, b) {
+
+  var filtered = isParent ? filterGrades(data.grades) : data.grades;
+  var sortedGrades = filtered.slice().sort(function (a, b) {
     return String(b.date || "").localeCompare(String(a.date || ""));
   });
-  var html = sortedGrades.slice(0, GRADES_LIMIT).map(function (g) {
-    var em = gradeEmoji(g.value);
-    var parts = [];
-    if (g.payment > 0) parts.push('<span class="amount-positive">+' + g.payment + ' BYN</span>');
-    else if (g.payment < 0) parts.push('<span class="amount-negative">' + g.payment + ' BYN</span>');
-    var penalty = penaltyPointsForGrade(g.value);
-    if (penalty) parts.push('<span class="amount-negative">' + penalty + ' ' + pluralPoints(Math.abs(penalty)) + '</span>');
-    if (!parts.length) parts.push('<span class="amount-zero">0 BYN</span>');
-    var a = parts.join(" ");
-    var pb = isParent
-      ? '<button class="button button--light button--small" type="button" data-action="edit-grade" data-id="' + g.id + '">Изменить</button> <button class="button button--danger button--small" type="button" data-action="delete-grade" data-id="' + g.id + '">Удалить</button>'
-      : "";
-    return '<div class="list-item"><div><div class="list-item__title">' + em + " " + escapeHtml(g.subject) + " — " + g.value + '</div><div class="list-item__meta">' + g.date + '</div></div><div class="list-item__actions">' + a + pb + '</div></div>';
-  }).join("");
+
+  var html = "";
+  if (sortedGrades.length) {
+    html = sortedGrades.slice(0, GRADES_LIMIT).map(function (g) {
+      var em = gradeEmoji(g.value);
+      var parts = [];
+      if (g.payment > 0) parts.push('<span class="amount-positive">+' + g.payment + ' BYN</span>');
+      else if (g.payment < 0) parts.push('<span class="amount-negative">' + g.payment + ' BYN</span>');
+      var penalty = penaltyPointsForGrade(g.value);
+      if (penalty) parts.push('<span class="amount-negative">' + penalty + ' ' + pluralPoints(Math.abs(penalty)) + '</span>');
+      if (!parts.length) parts.push('<span class="amount-zero">0 BYN</span>');
+      var a = parts.join(" ");
+      var pb = isParent
+        ? '<button class="button button--light button--small" type="button" data-action="edit-grade" data-id="' + g.id + '">Изменить</button> <button class="button button--danger button--small" type="button" data-action="delete-grade" data-id="' + g.id + '">Удалить</button>'
+        : "";
+      return '<div class="list-item"><div><div class="list-item__title">' + em + " " + escapeHtml(g.subject) + " — " + g.value + '</div><div class="list-item__meta">' + g.date + '</div></div><div class="list-item__actions">' + a + pb + '</div></div>';
+    }).join("");
+  } else if (isParent && data.grades.length > 0) {
+    html = '<div class="empty-state"><div class="empty-state__text">По фильтрам ничего не найдено</div></div>';
+  }
 
   if (isParent) {
     html += data.gradeRequests.map(function (r) {
@@ -1827,18 +1902,191 @@ function renderHistory() {
 function renderPendingChores() {
   var el = document.getElementById("pendingList");
   if (!el) return;
-  var list = data.completions.filter(function (c) { return c.status === "pending"; });
+
+  var list = data.completions.filter(function (c) {
+    return c.status === "pending" && data.chores.some(function (ch) { return ch.id === c.choreId; });
+  });
+
   if (!list.length) {
+    pendingSelectionIds = [];
     el.innerHTML = '<div class="empty-state"><div class="empty-state__illustration">' + svgBell() + '</div><div class="empty-state__text">Нет заданий на проверке</div></div>';
     return;
   }
+
+  pendingSelectionIds = pendingSelectionIds.filter(function (id) {
+    return list.some(function (c) { return c.id === id; });
+  });
+  var selectedCount = pendingSelectionIds.length;
+
+  var toolbar = '<div class="pending-toolbar">' +
+    '<span class="pending-toolbar__count">' + list.length + ' на проверке' +
+      (selectedCount ? ' · выбрано ' + selectedCount : '') + '</span>' +
+    (selectedCount
+      ? '<button class="button button--light button--small" type="button" data-bulk="clear">✕ Снять</button>' +
+        '<button class="button button--primary button--small" type="button" data-bulk="approve-selected">✓ Одобрить (' + selectedCount + ')</button>' +
+        '<button class="button button--danger button--small" type="button" data-bulk="reject-selected">✕ Отклонить</button>'
+      : '<button class="button button--light button--small" type="button" data-bulk="select-all">☑ Выбрать все</button>' +
+        '<button class="button button--primary button--small" type="button" data-bulk="approve-all">✓✓ Одобрить все</button>' +
+        '<button class="button button--light button--small" type="button" data-bulk="reject-all">✕✕ Отклонить все</button>'
+    ) +
+  '</div>';
+
   var html = list.map(function (c) {
     var ch = data.chores.find(function (x) { return x.id === c.choreId; });
     if (!ch) return "";
     var pH = c.photo ? '<img class="chore-photo-thumb" src="' + c.photo + '" alt="Фото">' : "";
-    return '<div class="list-item"><div><div class="list-item__title">' + escapeHtml(ch.title) + '</div><div class="list-item__meta">' + ch.reward + " " + pluralPoints(ch.reward) + " · " + c.date + '</div>' + pH + '</div><div class="list-item__actions"><button class="button button--primary button--small" type="button" data-action="approve-chore" data-id="' + c.id + '">💬 Одобрить</button> <button class="button button--light button--small" type="button" data-action="reject-chore" data-id="' + c.id + '">Отклонить</button></div></div>';
+    var isSel = pendingSelectionIds.indexOf(c.id) >= 0;
+    return '<div class="list-item ' + (isSel ? 'is-selected' : '') + '">' +
+      '<div class="pending-item-wrap">' +
+        '<label class="pending-checkbox">' +
+          '<input type="checkbox" data-pending-id="' + c.id + '" ' + (isSel ? 'checked' : '') + '>' +
+        '</label>' +
+        '<div>' +
+          '<div class="list-item__title">' + escapeHtml(ch.title) + '</div>' +
+          '<div class="list-item__meta">' + ch.reward + " " + pluralPoints(ch.reward) + " · " + c.date + '</div>' +
+          pH +
+        '</div>' +
+      '</div>' +
+      '<div class="list-item__actions">' +
+        '<button class="button button--primary button--small" type="button" data-action="approve-chore" data-id="' + c.id + '">💬 Одобрить</button> ' +
+        '<button class="button button--light button--small" type="button" data-action="reject-chore" data-id="' + c.id + '">Отклонить</button>' +
+      '</div>' +
+    '</div>';
   }).join("");
-  el.innerHTML = html;
+
+  el.innerHTML = toolbar + html;
+}
+
+function togglePendingSelection(id) {
+  var i = pendingSelectionIds.indexOf(id);
+  if (i >= 0) pendingSelectionIds.splice(i, 1);
+  else pendingSelectionIds.push(id);
+  renderPendingChores();
+}
+
+function handleBulkAction(action) {
+  var pending = data.completions.filter(function (c) {
+    return c.status === "pending" && data.chores.some(function (ch) { return ch.id === c.choreId; });
+  });
+  var allIds = pending.map(function (c) { return c.id; });
+
+  if (action === "select-all") {
+    var allSelected = allIds.length > 0 && allIds.every(function (id) { return pendingSelectionIds.indexOf(id) >= 0; });
+    pendingSelectionIds = allSelected ? [] : allIds.slice();
+    renderPendingChores();
+    return;
+  }
+  if (action === "clear") {
+    pendingSelectionIds = [];
+    renderPendingChores();
+    return;
+  }
+  if (action === "approve-selected") {
+    if (!pendingSelectionIds.length) return;
+    if (!confirm("Одобрить выбранные задания (" + pendingSelectionIds.length + ")?")) return;
+    bulkApprove(pendingSelectionIds.slice());
+    return;
+  }
+  if (action === "reject-selected") {
+    if (!pendingSelectionIds.length) return;
+    var r1 = prompt("Причина отклонения (" + pendingSelectionIds.length + ") — можно оставить пустым:");
+    if (r1 === null) return;
+    bulkReject(pendingSelectionIds.slice(), r1);
+    return;
+  }
+  if (action === "approve-all") {
+    if (!allIds.length) return;
+    if (!confirm("Одобрить ВСЕ задания на проверке (" + allIds.length + ")?")) return;
+    bulkApprove(allIds);
+    return;
+  }
+  if (action === "reject-all") {
+    if (!allIds.length) return;
+    var r2 = prompt("Причина отклонения ВСЕХ (" + allIds.length + ") — можно оставить пустым:");
+    if (r2 === null) return;
+    bulkReject(allIds, r2);
+    return;
+  }
+}
+
+function bulkApprove(ids) {
+  var pending = data.completions.filter(function (c) {
+    return c.status === "pending" && ids.indexOf(c.id) >= 0;
+  });
+  if (!pending.length) return;
+
+  var approvedCount = 0;
+  var rejectedByLimit = 0;
+  var totalPoints = 0;
+
+  pending.forEach(function (c) {
+    var ch = data.chores.find(function (x) { return x.id === c.choreId; });
+    if (!ch) {
+      c.status = "rejected";
+      c.approvedAt = Date.now();
+      c.photo = "";
+      return;
+    }
+    var max = ch.maxPerDay || 1;
+    if (max < 999) {
+      var approvedToday = data.completions.filter(function (x) {
+        return x.choreId === ch.id && x.date === today() && x.status === "approved";
+      }).length;
+      if (approvedToday >= max) {
+        c.status = "rejected";
+        c.comment = c.comment || "";
+        c.approvedAt = Date.now();
+        c.photo = "";
+        rejectedByLimit++;
+        return;
+      }
+    }
+    c.status = "approved";
+    c.approvedAt = Date.now();
+    c.photo = "";
+    addTransaction("Задание: " + ch.title, { points: ch.reward });
+    totalPoints += ch.reward;
+    approvedCount++;
+  });
+
+  if (approvedCount) {
+    addNotification("child", "✅ Одобрено: " + approvedCount + " · +" + totalPoints + " " + pluralPoints(totalPoints), "✅");
+  }
+  if (rejectedByLimit) {
+    addNotification("child", "❌ Отклонено по лимиту: " + rejectedByLimit, "❌");
+  }
+
+  checkLevelUp();
+  checkGoalsReady();
+  pendingSelectionIds = [];
+  saveData();
+
+  if (approvedCount) {
+    showToast("✓ Одобрено: " + approvedCount + " · +" + totalPoints + " " + pluralPoints(totalPoints), "success");
+    spawnConfetti(30);
+  }
+  if (rejectedByLimit) {
+    setTimeout(function () { showToast("Отклонено по лимиту: " + rejectedByLimit); }, 1500);
+  }
+}
+
+function bulkReject(ids, reason) {
+  var toReject = data.completions.filter(function (c) {
+    return c.status === "pending" && ids.indexOf(c.id) >= 0;
+  });
+  if (!toReject.length) return;
+
+  toReject.forEach(function (c) {
+    c.status = "rejected";
+    c.comment = reason || "";
+    c.approvedAt = Date.now();
+    c.photo = "";
+  });
+
+  addNotification("child", "❌ Отклонено заданий: " + toReject.length + (reason ? " · " + reason : ""), "❌");
+  pendingSelectionIds = [];
+  saveData();
+  showToast("Отклонено: " + toReject.length);
 }
 
 function renderWithdrawRequests() {
@@ -2069,6 +2317,22 @@ function deleteChore(id) {
   data.completions = data.completions.filter(function (c) { return c.choreId !== id; });
   saveData();
   showToast("Задание удалено");
+}
+
+function duplicateChore(id) {
+  var ch = data.chores.find(function (x) { return x.id === id; });
+  if (!ch) return;
+  data.chores.push({
+    id: uniqueId(),
+    title: ch.title + " (копия)",
+    description: ch.description,
+    reward: ch.reward,
+    repeat: ch.repeat,
+    days: Array.isArray(ch.days) ? ch.days.slice() : [],
+    maxPerDay: ch.maxPerDay
+  });
+  saveData();
+  showToast("📋 Задание скопировано", "success");
 }
 
 function approveGrade(id) {
@@ -3076,6 +3340,9 @@ function bindEvents() {
     var dayBtn = e.target.closest("#choreDaysGrid .weekday-btn");
     if (dayBtn) { e.preventDefault(); toggleChoreDay(Number(dayBtn.dataset.day)); return; }
 
+    var bulkBtn = e.target.closest("[data-bulk]");
+    if (bulkBtn) { e.preventDefault(); handleBulkAction(bulkBtn.dataset.bulk); return; }
+
     var btn = e.target.closest("[data-action], #exchangeButton, #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, #requestWithdrawButton, [data-close-modal]");
     if (!btn) return;
 
@@ -3164,6 +3431,7 @@ function bindEvents() {
 
     if (action === "complete-chore") return openPhotoModal(dataId);
     if (action === "delete-chore") return deleteChore(dataId);
+    if (action === "duplicate-chore") return duplicateChore(dataId);
     if (action === "edit-chore") {
       var ch = data.chores.find(function (x) { return x.id === dataId; });
       if (!ch) return;
@@ -3200,6 +3468,29 @@ function bindEvents() {
       document.getElementById("goalImportant").checked = !!g.important;
       document.getElementById("goalModalTitle").textContent = "Редактировать цель";
       return openModal("goalModal");
+    }
+  });
+
+  document.addEventListener("change", function (e) {
+    var pendingCb = e.target.closest("[data-pending-id]");
+    if (pendingCb) {
+      togglePendingSelection(Number(pendingCb.dataset.pendingId));
+      return;
+    }
+    if (e.target.id === "gradeFilterSubject") {
+      gradeFilter.subject = e.target.value;
+      renderGrades(currentRole === "parent");
+      return;
+    }
+    if (e.target.id === "gradeFilterValue") {
+      gradeFilter.value = e.target.value;
+      renderGrades(currentRole === "parent");
+      return;
+    }
+    if (e.target.id === "gradeFilterPeriod") {
+      gradeFilter.period = e.target.value;
+      renderGrades(currentRole === "parent");
+      return;
     }
   });
 
@@ -3476,7 +3767,7 @@ function bindEvents() {
   bindStartScreenTap();
 }
 
-console.log("Моя копилка v52 загружена (Этап 2: горячие клавиши, поиск Ctrl+K, полоска синхронизации)");
+console.log("Моя копилка v53 загружена (Этап 3: массовые операции, дублирование, фильтры оценок)");
 
 initTheme();
 paintStaticIcons();

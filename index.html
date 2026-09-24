@@ -188,6 +188,7 @@
             <button class="button button--primary child-only" id="suggestGradeButton" type="button">Предложить</button>
           </div>
         </div>
+        <div class="grade-filters" id="gradeFilters" style="display:none"></div>
         <div class="list" id="gradesList"></div>
       </article>
     </section>
@@ -277,13 +278,13 @@
       <span class="bottom-nav__icon">🏠</span>
       <span class="bottom-nav__label">Главная</span>
     </button>
-    <button class="bottom-nav__btn" type="button" data-nav="chores">
-      <span class="bottom-nav__icon">✅</span>
-      <span class="bottom-nav__label">Задания</span>
-    </button>
     <button class="bottom-nav__btn" type="button" data-nav="grades">
       <span class="bottom-nav__icon">🎓</span>
       <span class="bottom-nav__label">Оценки</span>
+    </button>
+    <button class="bottom-nav__btn" type="button" data-nav="chores">
+      <span class="bottom-nav__icon">✅</span>
+      <span class="bottom-nav__label">Задания</span>
     </button>
     <button class="bottom-nav__btn" type="button" data-nav="goals">
       <span class="bottom-nav__icon">🎯</span>
@@ -676,8 +677,6 @@
     </form>
   </div>
 </div>
-
-<div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>

@@ -255,6 +255,54 @@
       </article>
     </section>
   </main>
+
+  <!-- Плавающее нижнее меню (только мобилка) -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="bottom-nav__btn" type="button" data-nav="top">
+      <span class="bottom-nav__icon">🏠</span>
+      <span class="bottom-nav__label">Главная</span>
+    </button>
+    <button class="bottom-nav__btn" type="button" data-nav="chores">
+      <span class="bottom-nav__icon">✅</span>
+      <span class="bottom-nav__label">Задания</span>
+    </button>
+    <button class="bottom-nav__btn" type="button" data-nav="grades">
+      <span class="bottom-nav__icon">🎓</span>
+      <span class="bottom-nav__label">Оценки</span>
+    </button>
+    <button class="bottom-nav__btn" type="button" data-nav="goals">
+      <span class="bottom-nav__icon">🎯</span>
+      <span class="bottom-nav__label">Цели</span>
+    </button>
+    <button class="bottom-nav__btn child-only" type="button" data-nav="profile">
+      <span class="bottom-nav__icon">👤</span>
+      <span class="bottom-nav__label">Профиль</span>
+    </button>
+  </nav>
+
+  <!-- FAB с быстрыми действиями (только родитель) -->
+  <div class="fab-wrap parent-only" id="fabWrap">
+    <div class="fab-actions">
+      <button class="fab-action" type="button" data-fab="chore">
+        <span class="fab-action__icon">📋</span>
+        <span class="fab-action__label">Задание</span>
+      </button>
+      <button class="fab-action" type="button" data-fab="grade">
+        <span class="fab-action__icon">🎓</span>
+        <span class="fab-action__label">Оценка</span>
+      </button>
+      <button class="fab-action" type="button" data-fab="goal">
+        <span class="fab-action__icon">🎯</span>
+        <span class="fab-action__label">Цель</span>
+      </button>
+    </div>
+    <button class="fab" type="button" id="fab" aria-label="Добавить">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
+  </div>
 </div>
 
 <button class="scroll-top-btn" id="scrollTopBtn" type="button" aria-label="Наверх">
@@ -262,54 +310,6 @@
     <polyline points="6 14 12 8 18 14"></polyline>
   </svg>
 </button>
-
-<!-- Плавающее нижнее меню (только мобилка) -->
-<nav class="bottom-nav" id="bottomNav">
-  <button class="bottom-nav__btn" type="button" data-nav="top">
-    <span class="bottom-nav__icon">🏠</span>
-    <span class="bottom-nav__label">Главная</span>
-  </button>
-  <button class="bottom-nav__btn" type="button" data-nav="chores">
-    <span class="bottom-nav__icon">✅</span>
-    <span class="bottom-nav__label">Задания</span>
-  </button>
-  <button class="bottom-nav__btn" type="button" data-nav="grades">
-    <span class="bottom-nav__icon">🎓</span>
-    <span class="bottom-nav__label">Оценки</span>
-  </button>
-  <button class="bottom-nav__btn" type="button" data-nav="goals">
-    <span class="bottom-nav__icon">🎯</span>
-    <span class="bottom-nav__label">Цели</span>
-  </button>
-  <button class="bottom-nav__btn" type="button" data-nav="profile">
-    <span class="bottom-nav__icon">👤</span>
-    <span class="bottom-nav__label">Профиль</span>
-  </button>
-</nav>
-
-<!-- FAB с быстрыми действиями (только родитель) -->
-<div class="fab-wrap parent-only" id="fabWrap">
-  <div class="fab-actions">
-    <button class="fab-action" type="button" data-fab="chore">
-      <span class="fab-action__icon">📋</span>
-      <span class="fab-action__label">Задание</span>
-    </button>
-    <button class="fab-action" type="button" data-fab="grade">
-      <span class="fab-action__icon">🎓</span>
-      <span class="fab-action__label">Оценка</span>
-    </button>
-    <button class="fab-action" type="button" data-fab="goal">
-      <span class="fab-action__icon">🎯</span>
-      <span class="fab-action__label">Цель</span>
-    </button>
-  </div>
-  <button class="fab" type="button" id="fab" aria-label="Добавить">
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-  </button>
-</div>
 
 <div class="toast" id="toast"></div>
 

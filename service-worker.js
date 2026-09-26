@@ -1,6 +1,7 @@
 "use strict";
 
-var CACHE_NAME = "moya-kopilka-v2";
+// Меняй версию, когда хочешь принудительно обновить кэш (например, после больших правок)
+var CACHE_NAME = "moya-kopilka-v3";
 
 var URLS_TO_CACHE = [
   "./",
@@ -16,9 +17,11 @@ var URLS_TO_CACHE = [
   "./js/render.js",
   "./js/actions.js",
   "./js/ui.js",
+  "./js/voice.js",
   "./js/app.js"
 ];
 
+// Установка: скачиваем и кэшируем все файлы
 self.addEventListener("install", function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
@@ -28,6 +31,7 @@ self.addEventListener("install", function (event) {
   self.skipWaiting();
 });
 
+// Активация: удаляем старые кэши (если версия менялась)
 self.addEventListener("activate", function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
@@ -40,6 +44,7 @@ self.addEventListener("activate", function (event) {
   self.clients.claim();
 });
 
+// Перехват запросов: сеть → при неудаче кэш
 self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
   var url = new URL(event.request.url);

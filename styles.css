@@ -1633,3 +1633,85 @@ body.dark .button--copy {
   .grade-filters select { flex: 1 1 100%; }
 }
 
+/* ============================================================
+   ЭТАП 4: ГОЛОСОВОЙ ВВОД
+   ============================================================ */
+
+.voice-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  margin-bottom: 6px;
+  border: 2px dashed #C4B5FD;
+  border-radius: 14px;
+  background: #F5F0FF;
+  color: #6D28D9;
+  font: inherit;
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: background .15s, border-color .15s, box-shadow .15s;
+  touch-action: manipulation;
+}
+
+.voice-btn__icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.voice-btn__label {
+  flex: 1;
+  text-align: left;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .voice-btn:hover {
+    background: #EDE4FF;
+    border-color: #A78BFA;
+  }
+}
+
+.voice-btn.is-listening {
+  border-style: solid;
+  border-color: #DB2777;
+  background: #FCE7F3;
+  color: #BE185D;
+  animation: voiceBtnPulse 1.4s ease-in-out infinite;
+}
+
+.voice-btn.is-listening .voice-btn__icon {
+  animation: voiceMicPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes voiceBtnPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(219, 39, 119, 0.35); }
+  50%      { box-shadow: 0 0 0 10px rgba(219, 39, 119, 0); }
+}
+
+@keyframes voiceMicPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.2); }
+}
+
+body.dark .voice-btn {
+  background: #3A2A55;
+  border-color: #5B3D8A;
+  color: #D4B6FF;
+}
+@media (hover: hover) and (pointer: fine) {
+  body.dark .voice-btn:hover {
+    background: #4A3568;
+    border-color: #7C5CB0;
+  }
+}
+body.dark .voice-btn.is-listening {
+  background: #4A2038;
+  border-color: #F472B6;
+  color: #F9A8D4;
+}

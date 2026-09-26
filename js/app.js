@@ -17,6 +17,7 @@ initFab();
 initPullToRefresh();
 initHotkeys();
 initSearch();
+initVoiceInput();
 
 setInterval(checkDayChange, DAY_CHECK_INTERVAL_MS);
 document.addEventListener("visibilitychange", function () {

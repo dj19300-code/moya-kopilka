@@ -12,7 +12,7 @@ var THEME_KEY = "familyBalanceTheme";
 var PARENT_PASSWORD = "1234";
 var EXCHANGE_RATE = 5;
 var HISTORY_LIMIT = 5;
-var GRADES_LIMIT = 10;
+var GRADES_LIMIT = 3;
 var NOTIF_LIMIT = 100;
 var MAX_GOALS = 3;
 

@@ -1,7 +1,7 @@
 "use strict";
 
 /* ============================================================
-   Голосовой ввод: распознавание речи + парсинг команд
+   Голосовой ввод: кнопки в шапке секций → слушаем → открываем модалку
    Web Speech API — работает в Chrome, Edge, Safari (iOS 14.5+)
    ============================================================ */
 
@@ -29,7 +29,7 @@ function createRecognition() {
   return r;
 }
 
-/* ---------- Нормализация и извлечение данных ---------- */
+/* ---------- Нормализация ---------- */
 
 function normalizeVoiceText(t) {
   return String(t || "")
@@ -132,7 +132,7 @@ function parseGradeText(text) {
   };
 }
 
-/* ---------- Применение распознанного к формам ---------- */
+/* ---------- Применение к формам ---------- */
 
 function applyVoiceToChoreForm(parsed, rawText) {
   if (!parsed) return;
@@ -144,7 +144,7 @@ function applyVoiceToChoreForm(parsed, rawText) {
     document.getElementById("choreRepeat").value = parsed.repeat;
     if (typeof syncChoreDaysVisibility === "function") syncChoreDaysVisibility();
   }
-  showToast("🎤 " + rawText);
+  showToast("🎤 " + rawText, "success");
 }
 
 function applyVoiceToGradeForm(parsed, rawText) {
@@ -156,18 +156,7 @@ function applyVoiceToGradeForm(parsed, rawText) {
   if (parsed.value !== null && parsed.value !== undefined) {
     document.getElementById("gradeValue").value = parsed.value;
   }
-  showToast("🎤 " + rawText);
-}
-
-function applyVoiceToSuggestForm(parsed, rawText) {
-  if (!parsed) return;
-  if (parsed.subject) {
-    setSubjectSelect("#suggestSubjectSelect", "#suggestSubjectCustom", "#suggestCustomSubjectWrapper", parsed.subject);
-  }
-  if (parsed.value !== null && parsed.value !== undefined) {
-    document.getElementById("suggestValue").value = parsed.value;
-  }
-  showToast("🎤 " + rawText);
+  showToast("🎤 " + rawText, "success");
 }
 
 /* ---------- Управление распознаванием ---------- */
@@ -183,13 +172,12 @@ function stopVoice() {
   }
 }
 
-function startVoice(btn, parser, applyFn) {
+function startVoice(btn, onResult) {
   if (!voiceSupported()) {
     showToast("Голосовой ввод не поддерживается в этом браузере");
     return;
   }
 
-  // Повторное нажатие на ту же кнопку — стоп
   if (voiceRecognition && voiceActiveButton === btn) {
     stopVoice();
     return;
@@ -206,9 +194,8 @@ function startVoice(btn, parser, applyFn) {
 
   voiceRecognition.onresult = function (e) {
     var text = e.results[0][0].transcript || "";
-    var parsed = parser(text);
-    applyFn(parsed, text);
     stopVoice();
+    if (onResult) onResult(text);
   };
 
   voiceRecognition.onerror = function (e) {
@@ -234,33 +221,62 @@ function startVoice(btn, parser, applyFn) {
   }
 }
 
-/* ---------- Привязка кнопок к модалкам ---------- */
+/* ---------- Создание кнопки в шапке ---------- */
 
-function attachVoiceToModal(modalId, parser, applyFn) {
-  var modal = document.getElementById(modalId);
-  if (!modal) return;
-  var form = modal.querySelector("form");
-  if (!form) return;
-
+function createVoiceHeaderButton(title, onResult) {
   var btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "voice-btn";
-  btn.innerHTML = '<span class="voice-btn__icon">🎤</span><span class="voice-btn__label">Сказать голосом</span>';
+  btn.className = "button button--light voice-btn-inline parent-only";
+  btn.setAttribute("aria-label", title);
+  btn.title = title;
+  btn.innerHTML = '<span class="voice-btn__icon">🎤</span>';
   btn.addEventListener("click", function (e) {
     e.preventDefault();
-    startVoice(btn, parser, applyFn);
+    startVoice(btn, onResult);
   });
-
-  form.insertBefore(btn, form.firstChild);
+  return btn;
 }
+
+function attachVoiceButtonBefore(targetId, title, onResult) {
+  var target = document.getElementById(targetId);
+  if (!target || !target.parentNode) return;
+  var btn = createVoiceHeaderButton(title, onResult);
+  target.parentNode.insertBefore(btn, target);
+}
+
+/* ---------- Инициализация ---------- */
 
 function initVoiceInput() {
   if (!voiceSupported()) {
     console.log("Голосовой ввод не поддерживается этим браузером");
     return;
   }
-  attachVoiceToModal("choreModal", parseChoreText, applyVoiceToChoreForm);
-  attachVoiceToModal("gradeModal", parseGradeText, applyVoiceToGradeForm);
-  attachVoiceToModal("suggestGradeModal", parseGradeText, applyVoiceToSuggestForm);
+
+  // Кнопка 🎤 рядом с "+ Добавить" в секции «Задания на сегодня»
+  attachVoiceButtonBefore(
+    "openChoreModal",
+    "Сказать задание голосом",
+    function (text) {
+      var openBtn = document.getElementById("openChoreModal");
+      if (openBtn) openBtn.click();
+      setTimeout(function () {
+        applyVoiceToChoreForm(parseChoreText(text), text);
+      }, 180);
+    }
+  );
+
+  // Кнопка 🎤 рядом с "+ Добавить" в секции «Оценки»
+  attachVoiceButtonBefore(
+    "openGradeModal",
+    "Сказать оценку голосом",
+    function (text) {
+      var openBtn = document.getElementById("openGradeModal");
+      if (openBtn) openBtn.click();
+      setTimeout(function () {
+        applyVoiceToGradeForm(parseGradeText(text), text);
+      }, 180);
+    }
+  );
+
   console.log("Голосовой ввод активирован");
 }

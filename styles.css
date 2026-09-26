@@ -1715,3 +1715,50 @@ body.dark .voice-btn.is-listening {
   border-color: #F472B6;
   color: #F9A8D4;
 }
+
+/* ============================================================
+   Голосовая кнопка в шапке секции
+   ============================================================ */
+
+.voice-btn-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 14px;
+  transition: background .15s, border-color .15s, box-shadow .15s, transform .1s;
+}
+
+.voice-btn-inline .voice-btn__icon {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform .2s;
+}
+
+.voice-btn-inline.is-listening {
+  background: #FCE7F3;
+  color: #BE185D;
+  box-shadow: 0 0 0 0 rgba(219, 39, 119, 0.4);
+  animation: voiceBtnPulse 1.4s ease-in-out infinite;
+}
+
+.voice-btn-inline.is-listening .voice-btn__icon {
+  animation: voiceMicPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes voiceBtnPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(219, 39, 119, 0.4); }
+  50%      { box-shadow: 0 0 0 10px rgba(219, 39, 119, 0); }
+}
+
+@keyframes voiceMicPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.25); }
+}
+
+body.dark .voice-btn-inline.is-listening {
+  background: #4A2038;
+  color: #F9A8D4;
+}

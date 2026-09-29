@@ -2,10 +2,11 @@
 
 /* ============================================================
    Локальные push-уведомления родителю о новых заявках
-   Работает через Firebase on("value") + Service Worker
+   Firebase on("value") + Service Worker
    ============================================================ */
 
-var PENDING_SNAPSHOT_KEY = "moya-kopilka-pending-snapshot";
+var NOTIFIED_IDS_KEY = "moya-kopilka-notified-ids";
+var PUSH_ENABLED_KEY = "moya-kopilka-push-enabled";
 
 function pushSupported() {
   return "Notification" in window && "serviceWorker" in navigator;
@@ -15,73 +16,115 @@ function pushPermissionGranted() {
   return pushSupported() && Notification.permission === "granted";
 }
 
-function requestPushPermission() {
-  console.log("Push: запрос разрешения. Notification=", typeof Notification, "SW=", "serviceWorker" in navigator);
+/* Пользовательский «включатель»: разрешение браузера + наш флаг */
+function pushEnabled() {
+  if (!pushPermissionGranted()) return false;
+  try {
+    return localStorage.getItem(PUSH_ENABLED_KEY) !== "0";
+  } catch (e) { return true; }
+}
+
+function setPushEnabledFlag(v) {
+  try {
+    localStorage.setItem(PUSH_ENABLED_KEY, v ? "1" : "0");
+  } catch (e) {}
+}
+
+/* ---------- Переключатель в настройках ---------- */
+
+function togglePushSwitch(checked) {
   if (!pushSupported()) {
-    showToast("Уведомления не поддерживаются браузером");
-    console.warn("Push: Notification или serviceWorker недоступны. Возможно, приложение открыто не в режиме PWA на iOS.");
-    return;
-  }
-  if (Notification.permission === "granted") {
-    showToast("Уведомления уже включены ✓", "success");
+    showToast("Уведомления не поддерживаются");
     refreshPushBlock();
     return;
   }
-  if (Notification.permission === "denied") {
-    showToast("Уведомления запрещены в настройках браузера");
-    console.warn("Push: разрешение ранее отклонено. Сбросьте в настройках сайта.");
-    return;
-  }
 
-  var result;
-  try {
-    result = Notification.requestPermission();
-  } catch (e) {
-    console.error("Push: requestPermission бросил исключение", e);
-    showToast("Ошибка: " + (e.message || "не удалось запросить"));
-    return;
-  }
-
-  // requestPermission может вернуть Promise (новые браузеры) или undefined (старые)
-  if (result && typeof result.then === "function") {
-    result.then(function (perm) {
-      console.log("Push: результат запроса =", perm);
-      if (perm === "granted") {
-        showToast("Уведомления включены 🔔", "success");
-        showLocalNotification(
-          "Моя копилка",
-          "Уведомления включены. Сюда будут приходить заявки от ребёнка.",
-          "push-test-" + Date.now(),
-          null
-        );
-      } else {
-        showToast("Уведомления не разрешены");
+  if (checked) {
+    if (Notification.permission === "granted") {
+      setPushEnabledFlag(true);
+      showToast("Уведомления включены 🔔", "success");
+      refreshPushBlock();
+      if (typeof data !== "undefined" && data) {
+        checkNewPendingForPush(data);
       }
+      return;
+    }
+    if (Notification.permission === "denied") {
+      showToast("Разрешите уведомления в настройках браузера");
       refreshPushBlock();
-    }).catch(function (err) {
-      console.error("Push: ошибка запроса", err);
-      showToast("Не удалось запросить разрешение");
+      return;
+    }
+    // default → спрашиваем
+    var result;
+    try {
+      result = Notification.requestPermission();
+    } catch (e) {
+      showToast("Ошибка запроса");
       refreshPushBlock();
-    });
+      return;
+    }
+    if (result && typeof result.then === "function") {
+      result.then(function (perm) {
+        if (perm === "granted") {
+          setPushEnabledFlag(true);
+          showToast("Уведомления включены 🔔", "success");
+          showLocalNotification(
+            "Моя копилка",
+            "Уведомления включены. Сюда будут приходить заявки от ребёнка.",
+            "push-test-" + Date.now(),
+            null
+          );
+          if (typeof data !== "undefined" && data) {
+            checkNewPendingForPush(data);
+          }
+        } else {
+          showToast("Уведомления не разрешены");
+        }
+        refreshPushBlock();
+      }).catch(function () {
+        showToast("Не удалось запросить разрешение");
+        refreshPushBlock();
+      });
+    } else {
+      showToast("Браузер не поддерживает Web Push");
+      refreshPushBlock();
+    }
   } else {
-    // старый API (Safari до 16) — результат придёт через колбэк
-    // но в 2024+ это практически не встречается
-    showToast("Браузер вернул ответ без Promise — попробуйте обновить страницу");
+    setPushEnabledFlag(false);
+    showToast("Уведомления выключены");
+    refreshPushBlock();
   }
 }
 
+/* Обновляет вид переключателя и подпись. Вызывать при открытии настроек,
+   при входе в кабинет родителя и после изменения разрешения. */
 function refreshPushBlock() {
-  var block = document.getElementById("pushPermissionBlock");
-  if (!block) return;
-  if (currentRole === "parent" && pushSupported() && Notification.permission !== "granted") {
-    block.classList.remove("hidden");
-  } else {
-    block.classList.add("hidden");
+  var sw = document.getElementById("pushEnabledSwitch");
+  var hint = document.getElementById("pushSwitchHint");
+  if (!sw) return;
+
+  var supported = pushSupported();
+  var perm = supported ? Notification.permission : "unsupported";
+  var on = pushEnabled();
+
+  sw.disabled = !supported;
+  sw.checked = on;
+
+  if (hint) {
+    if (!supported) {
+      hint.textContent = "Не поддерживается этим браузером";
+    } else if (perm === "denied") {
+      hint.textContent = "Заблокировано в настройках браузера";
+    } else if (on) {
+      hint.textContent = "Включены · заявки приходят на телефон";
+    } else {
+      hint.textContent = "Выключены · нажмите, чтобы включить";
+    }
   }
 }
 
 function showLocalNotification(title, body, tag, url) {
-  if (!pushPermissionGranted()) return;
+  if (!pushEnabled()) return;
   navigator.serviceWorker.ready.then(function (reg) {
     var options = {
       body: body,
@@ -100,60 +143,65 @@ function showLocalNotification(title, body, tag, url) {
   });
 }
 
-/* ---------- Снапшот pending-заявок ---------- */
+/* ---------- Notified IDs (что уже показывали) ---------- */
 
-function getPendingSnapshot() {
+function getNotifiedIds() {
   try {
-    var raw = localStorage.getItem(PENDING_SNAPSHOT_KEY);
-    if (!raw) return null;
+    var raw = localStorage.getItem(NOTIFIED_IDS_KEY);
+    if (!raw) return { completions: [], grades: [], withdrawals: [] };
     var obj = JSON.parse(raw);
-    if (!obj || typeof obj !== "object") return null;
+    if (!obj || typeof obj !== "object") return { completions: [], grades: [], withdrawals: [] };
     return {
       completions: Array.isArray(obj.completions) ? obj.completions : [],
       grades: Array.isArray(obj.grades) ? obj.grades : [],
       withdrawals: Array.isArray(obj.withdrawals) ? obj.withdrawals : []
     };
-  } catch (e) { return null; }
+  } catch (e) { return { completions: [], grades: [], withdrawals: [] }; }
 }
 
-function savePendingSnapshot(newData) {
+function saveNotifiedIds(ids) {
   try {
-    var snapshot = {
-      completions: (newData.completions || []).filter(function (c) { return c.status === "pending"; }).map(function (c) { return c.id; }),
-      grades: (newData.gradeRequests || []).map(function (r) { return r.id; }),
-      withdrawals: (newData.withdrawRequests || []).filter(function (r) { return r.status === "pending"; }).map(function (r) { return r.id; })
-    };
-    localStorage.setItem(PENDING_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    ids.completions = ids.completions.slice(-500);
+    ids.grades = ids.grades.slice(-500);
+    ids.withdrawals = ids.withdrawals.slice(-500);
+    localStorage.setItem(NOTIFIED_IDS_KEY, JSON.stringify(ids));
   } catch (e) {}
 }
 
-/* ---------- Сравнение и уведомления ---------- */
+/* ---------- Основная проверка ---------- */
 
 function checkNewPendingForPush(newData) {
   if (!newData) return;
 
-  if (!pushPermissionGranted() || currentRole !== "parent") {
-    savePendingSnapshot(newData);
+  var hasKey = false;
+  try { hasKey = localStorage.getItem(NOTIFIED_IDS_KEY) !== null; } catch (e) {}
+
+  var notified = getNotifiedIds();
+
+  var currentPending = {
+    completions: (newData.completions || [])
+      .filter(function (c) { return c.status === "pending"; })
+      .map(function (c) { return c.id; }),
+    grades: (newData.gradeRequests || []).map(function (r) { return r.id; }),
+    withdrawals: (newData.withdrawRequests || [])
+      .filter(function (r) { return r.status === "pending"; })
+      .map(function (r) { return r.id; })
+  };
+
+  if (!hasKey) {
+    saveNotifiedIds(currentPending);
     return;
   }
 
-  var prev = getPendingSnapshot();
-
-  var newCompletions = (newData.completions || []).filter(function (c) { return c.status === "pending"; });
-  var newGrades = newData.gradeRequests || [];
-  var newWithdrawals = (newData.withdrawRequests || []).filter(function (r) { return r.status === "pending"; });
-
-  // Первый раз в жизни — просто запоминаем, не уведомляем
-  if (!prev) {
-    savePendingSnapshot(newData);
-    return;
-  }
+  // Не в кабинете родителя или уведомления выключены — не показываем сейчас.
+  if (!pushEnabled() || currentRole !== "parent") return;
 
   var childName = (newData.profile && newData.profile.name || "").trim();
   var prefix = childName ? childName + ": " : "";
 
-  newCompletions.forEach(function (c) {
-    if (prev.completions.indexOf(c.id) >= 0) return;
+  (newData.completions || []).forEach(function (c) {
+    if (c.status !== "pending") return;
+    if (notified.completions.indexOf(c.id) >= 0) return;
     var ch = (newData.chores || []).find(function (x) { return x.id === c.choreId; });
     var title = ch ? ch.title : "задание";
     var photo = c.photo ? " · 📷 с фото" : "";
@@ -163,31 +211,34 @@ function checkNewPendingForPush(newData) {
       "chore-" + c.id,
       "./?goto=chores&id=" + c.id
     );
+    notified.completions.push(c.id);
   });
 
-  newGrades.forEach(function (r) {
-    if (prev.grades.indexOf(r.id) >= 0) return;
+  (newData.gradeRequests || []).forEach(function (r) {
+    if (notified.grades.indexOf(r.id) >= 0) return;
     showLocalNotification(
       "🎓 Оценка на подтверждение",
       prefix + r.subject + " — " + r.value,
       "grade-" + r.id,
       "./?goto=grades&id=" + r.id
     );
+    notified.grades.push(r.id);
   });
 
-  newWithdrawals.forEach(function (r) {
-    if (prev.withdrawals.indexOf(r.id) >= 0) return;
-    var amountLabel = r.amount + " BYN";
+  (newData.withdrawRequests || []).forEach(function (r) {
+    if (r.status !== "pending") return;
+    if (notified.withdrawals.indexOf(r.id) >= 0) return;
     var reason = r.reason ? " · " + r.reason : "";
     showLocalNotification(
       "💰 Запрос на деньги",
-      prefix + amountLabel + reason,
+      prefix + r.amount + " BYN" + reason,
       "withdraw-" + r.id,
       "./?goto=withdraw&id=" + r.id
     );
+    notified.withdrawals.push(r.id);
   });
 
-  savePendingSnapshot(newData);
+  saveNotifiedIds(notified);
 }
 
 /* ---------- Deep link (?goto=...) ---------- */
@@ -200,7 +251,6 @@ function handlePushDeepLink() {
   var id = params.get("id");
   if (!goto) return;
 
-  // Чистим URL, чтобы при обновлении страницы не срабатывало снова
   try {
     window.history.replaceState({}, "", window.location.pathname + window.location.hash);
   } catch (e) {}
@@ -218,7 +268,6 @@ function handlePushDeepLink() {
     return;
   }
 
-  // Просим пароль, после ввода — переходим к элементу
   openModal("passwordModal");
   var passForm = document.getElementById("passwordForm");
   if (!passForm) return;
@@ -261,9 +310,7 @@ function scrollAndHighlight(goto, id) {
   setTimeout(function () {
     var el = null;
     var byDataId = document.querySelectorAll('[data-id="' + id + '"]');
-    if (byDataId.length) {
-      el = byDataId[0].closest(".list-item");
-    }
+    if (byDataId.length) el = byDataId[0].closest(".list-item");
     if (!el) {
       var cb = document.querySelector('[data-pending-id="' + id + '"]');
       if (cb) el = cb.closest(".list-item");
@@ -280,12 +327,11 @@ function scrollAndHighlight(goto, id) {
 
 function initPush() {
   if (pushSupported()) {
-    console.log("Push permission:", Notification.permission);
+    console.log("Push permission:", Notification.permission, "enabled:", pushEnabled());
   } else {
     console.log("Push-уведомления не поддерживаются этим браузером");
   }
 
-  // Слушаем сообщения от service worker (навигация после клика по пушу)
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", function (event) {
       if (!event.data || event.data.type !== "navigate") return;
@@ -297,6 +343,12 @@ function initPush() {
     });
   }
 
-  // Обработка первого запуска с параметром ?goto=...
   handlePushDeepLink();
+
+  // Периодическая проверка: страховка на случай пропущенного on("value")
+  setInterval(function () {
+    if (currentRole === "parent" && pushEnabled() && typeof data !== "undefined" && data) {
+      checkNewPendingForPush(data);
+    }
+  }, 20000);
 }

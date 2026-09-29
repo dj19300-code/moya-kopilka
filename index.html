@@ -387,12 +387,8 @@
     </form>
   </div>
 
-    <div class="modal hidden" id="notificationsModal">
+      <div class="modal hidden" id="notificationsModal">
     <h3>🔔 Уведомления</h3>
-    <div id="pushPermissionBlock" class="push-permission-block hidden">
-      <p class="modal-hint" style="margin:0 0 10px 0">Включи уведомления, чтобы получать заявки ребёнка сразу на телефон — даже когда приложение свёрнуто.</p>
-      <button class="button button--primary" id="enableNotificationsButton" type="button">🔔 Включить уведомления</button>
-    </div>
     <div class="list" id="notificationsList"></div>
     <div class="modal-actions">
       <button class="button button--light" id="clearNotificationsBtn" type="button">Очистить</button>
@@ -631,9 +627,9 @@
     </div>
   </div>
 
-  <div class="modal hidden" id="advancedModal">
+    <div class="modal hidden" id="advancedModal">
     <h3>🧪 Дополнительно</h3>
-    <p class="modal-hint" style="margin:0 0 14px 0">Настройки Гуфи и тестовые действия.</p>
+    <p class="modal-hint" style="margin:0 0 14px 0">Настройки Гуфи, уведомлений и тестовые действия.</p>
     <label>🐙 Гуфи
       <select id="guffyModeSelect">
         <option value="active">Активный — эмоции и реплики</option>
@@ -641,6 +637,15 @@
         <option value="off">Выключен — просто картинка</option>
       </select>
     </label>
+    <div style="margin-top:14px">
+      <label class="switch-row" for="pushEnabledSwitch">
+        <span class="switch-row__text">
+          🔔 Уведомления о заявках
+          <span class="switch-row__hint" id="pushSwitchHint">Выключены · нажмите, чтобы включить</span>
+        </span>
+        <input type="checkbox" id="pushEnabledSwitch">
+      </label>
+    </div>
     <div class="advanced-actions" style="margin-top:14px">
       <button class="button button--light" id="importButton" type="button">📥 Импорт из файла</button>
       <button class="button button--light" id="resetPointsButton" type="button">🎯 Обнулить баллы</button>

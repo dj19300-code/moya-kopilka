@@ -45,7 +45,6 @@ function openNotificationsModal() {
   });
   renderNotificationsList();
   renderNotificationsBadge();
-  if (typeof refreshPushBlock === "function") refreshPushBlock();
   openModal("notificationsModal");
   if (changed) saveData();
 }
@@ -762,7 +761,7 @@ function bindEvents() {
     var bulkBtn = e.target.closest("[data-bulk]");
     if (bulkBtn) { e.preventDefault(); handleBulkAction(bulkBtn.dataset.bulk); return; }
 
-    var btn = e.target.closest("[data-action], #exchangeButton, #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #enableNotificationsButton, #openBalanceManage, #requestWithdrawButton, [data-close-modal]");
+    var btn = e.target.closest("[data-action], #exchangeButton, #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, #requestWithdrawButton, [data-close-modal]");
     if (!btn) return;
 
     var id = btn.id;
@@ -777,11 +776,11 @@ function bindEvents() {
     if (action === "open-advanced") {
       var elGM = document.getElementById("guffyModeSelect");
       if (elGM) elGM.value = data.guffyMode || "active";
+      if (typeof refreshPushBlock === "function") refreshPushBlock();
       return openModal("advancedModal");
     }
 
     if (id === "clearNotificationsBtn") return clearNotifications();
-    if (id === "enableNotificationsButton") return requestPushPermission();
     if (id === "weeklyReportButton") return openWeeklyReport();
     if (id === "importButton") {
       var fi = document.getElementById("importFileInput");
@@ -898,7 +897,11 @@ function bindEvents() {
     }
   });
 
-  document.addEventListener("change", function (e) {
+    document.addEventListener("change", function (e) {
+    if (e.target.id === "pushEnabledSwitch") {
+      if (typeof togglePushSwitch === "function") togglePushSwitch(e.target.checked);
+      return;
+    }
     var pendingCb = e.target.closest("[data-pending-id]");
     if (pendingCb) {
       togglePendingSelection(Number(pendingCb.dataset.pendingId));

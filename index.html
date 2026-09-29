@@ -387,8 +387,12 @@
     </form>
   </div>
 
-  <div class="modal hidden" id="notificationsModal">
+    <div class="modal hidden" id="notificationsModal">
     <h3>🔔 Уведомления</h3>
+    <div id="pushPermissionBlock" class="push-permission-block hidden">
+      <p class="modal-hint" style="margin:0 0 10px 0">Включи уведомления, чтобы получать заявки ребёнка сразу на телефон — даже когда приложение свёрнуто.</p>
+      <button class="button button--primary" id="enableNotificationsButton" type="button">🔔 Включить уведомления</button>
+    </div>
     <div class="list" id="notificationsList"></div>
     <div class="modal-actions">
       <button class="button button--light" id="clearNotificationsBtn" type="button">Очистить</button>
@@ -684,6 +688,7 @@
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/icons.js"></script>
+<script src="js/push.js"></script>
 <script src="js/state.js"></script>
 <script src="js/render.js"></script>
 <script src="js/actions.js"></script>

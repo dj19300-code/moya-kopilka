@@ -45,6 +45,7 @@ function openNotificationsModal() {
   });
   renderNotificationsList();
   renderNotificationsBadge();
+  if (typeof refreshPushBlock === "function") refreshPushBlock();
   openModal("notificationsModal");
   if (changed) saveData();
 }
@@ -780,6 +781,7 @@ function bindEvents() {
     }
 
     if (id === "clearNotificationsBtn") return clearNotifications();
+    if (id === "enableNotificationsButton") return requestPushPermission();
     if (id === "weeklyReportButton") return openWeeklyReport();
     if (id === "importButton") {
       var fi = document.getElementById("importFileInput");

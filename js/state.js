@@ -166,10 +166,17 @@ try {
               if (localStr !== syncStr) {
                 console.warn("Пропускаю серверное обновление — есть несинхронизированные локальные изменения");
                 setSyncStatus("online", "");
+                // Всё равно проверим новые заявки для пуша
+                if (typeof checkNewPendingForPush === "function") {
+                  checkNewPendingForPush(normalize(raw));
+                }
                 return;
               }
             }
             data = normalize(raw);
+            if (typeof checkNewPendingForPush === "function") {
+              checkNewPendingForPush(data);
+            }
           } else {
             data = createInitialData();
             firebaseRef.set(data);

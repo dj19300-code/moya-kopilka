@@ -1,7 +1,7 @@
 "use strict";
 
-// Меняй версию, когда хочешь принудительно обновить кэш (например, после больших правок)
-var CACHE_NAME = "moya-kopilka-v5";
+// Меняй версию, когда хочешь принудительно обновить кэш
+var CACHE_NAME = "moya-kopilka-v6";
 
 var URLS_TO_CACHE = [
   "./",
@@ -13,6 +13,7 @@ var URLS_TO_CACHE = [
   "./js/config.js",
   "./js/utils.js",
   "./js/icons.js",
+  "./js/push.js",
   "./js/state.js",
   "./js/render.js",
   "./js/actions.js",
@@ -20,7 +21,6 @@ var URLS_TO_CACHE = [
   "./js/app.js"
 ];
 
-// Установка: скачиваем и кэшируем все файлы
 self.addEventListener("install", function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
@@ -30,7 +30,6 @@ self.addEventListener("install", function (event) {
   self.skipWaiting();
 });
 
-// Активация: удаляем старые кэши (если версия менялась)
 self.addEventListener("activate", function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
@@ -43,7 +42,6 @@ self.addEventListener("activate", function (event) {
   self.clients.claim();
 });
 
-// Перехват запросов: сеть → при неудаче кэш
 self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
   var url = new URL(event.request.url);
@@ -65,5 +63,36 @@ self.addEventListener("fetch", function (event) {
           return r || caches.match("./index.html");
         });
       })
+  );
+});
+
+/* ---------- Клик по уведомлению ---------- */
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  var targetUrl = (event.notification.data && event.notification.data.url) || "./";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+      // Ищем уже открытое приложение
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        var clientUrl = client.url || "";
+        try {
+          var cUrl = new URL(clientUrl);
+          var tUrl = new URL(targetUrl, self.location.origin);
+          if (cUrl.origin === tUrl.origin) {
+            // Передаём URL для навигации + фокусируем
+            client.postMessage({ type: "navigate", url: tUrl.pathname + tUrl.search });
+            if ("focus" in client) return client.focus();
+            return;
+          }
+        } catch (e) {}
+      }
+      // Ничего не открыто — открываем
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
   );
 });

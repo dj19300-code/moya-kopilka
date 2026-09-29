@@ -583,7 +583,7 @@
   <div class="modal hidden" id="goalModal">
     <h3 id="goalModalTitle">Новая цель</h3>
     <form id="goalForm">
-      <input type="hidden" id="goalEditIndex">
+      <input type="hidden" id="goalEditId">
       <label>Название<input id="goalTitle" type="text" required placeholder="Например: Наушники"></label>
       <label>Цена в баллах<input id="goalPrice" type="number" min="1" step="1" inputmode="numeric" required></label>
       <label>Срок (необязательно)<input id="goalDeadline" type="date"></label>
@@ -688,7 +688,6 @@
 <script src="js/render.js"></script>
 <script src="js/actions.js"></script>
 <script src="js/ui.js"></script>
-<script src="js/voice.js"></script>
 <script src="js/app.js"></script>
 <script>
   if ("serviceWorker" in navigator) {

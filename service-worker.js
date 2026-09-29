@@ -1,7 +1,7 @@
 "use strict";
 
 // Меняй версию, когда хочешь принудительно обновить кэш (например, после больших правок)
-var CACHE_NAME = "moya-kopilka-v4";
+var CACHE_NAME = "moya-kopilka-v5";
 
 var URLS_TO_CACHE = [
   "./",
@@ -17,7 +17,6 @@ var URLS_TO_CACHE = [
   "./js/render.js",
   "./js/actions.js",
   "./js/ui.js",
-  "./js/voice.js",
   "./js/app.js"
 ];
 

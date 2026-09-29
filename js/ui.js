@@ -379,6 +379,7 @@ function initPullToRefresh() {
         firebaseRef.once("value").then(function (snap) {
           var raw = snap.val();
           if (raw) data = normalize(raw);
+          lastSyncedData = JSON.parse(JSON.stringify(data));
           paintStartScreen();
           render();
           done(true);
@@ -535,7 +536,7 @@ function getSearchItems() {
     });
   });
 
-  data.goals.forEach(function (g, i) {
+  data.goals.forEach(function (g) {
     items.push({
       kind: "goal",
       icon: "🎯",
@@ -543,10 +544,11 @@ function getSearchItems() {
       hint: g.price + " " + pluralPoints(g.price),
       action: function () {
         if (isParent) {
-          var btn = document.querySelector('[data-action="edit-goal"][data-index="' + i + '"]');
+          var btn = document.querySelector('[data-action="edit-goal"][data-id="' + g.id + '"]');
           if (btn) btn.click();
         } else if (data.points >= g.price) {
-          claimGoal(i);
+          var idx = data.goals.findIndex(function (x) { return x.id === g.id; });
+          if (idx >= 0) claimGoal(idx);
         }
       },
       search: g.title.toLowerCase()
@@ -765,7 +767,6 @@ function bindEvents() {
     var id = btn.id;
     var action = btn.dataset.action;
     var dataId = Number(btn.dataset.id);
-    var dataIndex = Number(btn.dataset.index);
 
     if (action === "toggle-theme") return toggleTheme();
     if (action === "share") return handleShare();
@@ -823,7 +824,7 @@ function bindEvents() {
     if (id === "openGoalModal") {
       if (data.goals.length >= MAX_GOALS) { showToast("Максимум " + MAX_GOALS + " целей"); return; }
       document.getElementById("goalForm").reset();
-      document.getElementById("goalEditIndex").value = "";
+      document.getElementById("goalEditId").value = "";
       document.getElementById("goalDeadline").value = "";
       document.getElementById("goalImportant").checked = false;
       document.getElementById("goalModalTitle").textContent = "Новая цель";
@@ -872,12 +873,20 @@ function bindEvents() {
     if (action === "delete-grade") return deleteGrade(dataId);
     if (action === "approve-withdraw") return approveWithdraw(dataId);
     if (action === "reject-withdraw") return rejectWithdraw(dataId);
-    if (action === "claim-goal") return claimGoal(dataIndex);
-    if (action === "delete-goal") return deleteGoal(dataIndex);
+    if (action === "claim-goal") {
+      var gci = data.goals.findIndex(function (x) { return x.id === dataId; });
+      if (gci >= 0) return claimGoal(gci);
+      return showToast("Цель не найдена");
+    }
+    if (action === "delete-goal") {
+      var gdi = data.goals.findIndex(function (x) { return x.id === dataId; });
+      if (gdi >= 0) return deleteGoal(gdi);
+      return;
+    }
     if (action === "edit-goal") {
-      var g = data.goals[dataIndex];
-      if (!g) return;
-      document.getElementById("goalEditIndex").value = String(dataIndex);
+      var g = data.goals.find(function (x) { return x.id === dataId; });
+      if (!g) return showToast("Цель не найдена");
+      document.getElementById("goalEditId").value = String(g.id);
       document.getElementById("goalTitle").value = g.title;
       document.getElementById("goalPrice").value = g.price;
       document.getElementById("goalDeadline").value = g.deadline || "";
@@ -1091,24 +1100,23 @@ function bindEvents() {
   if (goalForm) {
     goalForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      var raw = document.getElementById("goalEditIndex").value;
+      var rawId = document.getElementById("goalEditId").value;
       var t = document.getElementById("goalTitle").value.trim();
       var pr = toInt(document.getElementById("goalPrice").value);
       var dl = document.getElementById("goalDeadline").value || "";
       var imp = !!document.getElementById("goalImportant").checked;
       if (!t || !Number.isInteger(pr) || pr < 1) return showToast("Проверьте данные");
-      if (raw !== "") {
-        var g = data.goals[Number(raw)];
+      if (rawId !== "") {
+        var g = data.goals.find(function (x) { return x.id === Number(rawId); });
         if (g) {
           g.title = t; g.price = pr; g.deadline = dl;
           g.important = imp; g.notifiedReady = false;
         }
       } else {
         if (data.goals.length >= MAX_GOALS) { closeModal(); return showToast("Максимум " + MAX_GOALS + " целей"); }
-        data.goals.push({ title: t, price: pr, deadline: dl, important: imp, notifiedReady: false });
+        data.goals.push({ id: uniqueId(), title: t, price: pr, deadline: dl, important: imp, notifiedReady: false });
       }
       closeModal();
-      saveData();
       checkGoalsReady();
       saveData();
       showToast("Цель сохранена");

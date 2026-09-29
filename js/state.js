@@ -96,6 +96,7 @@ function normalize(raw) {
     }),
     goals: toArray(raw.goals).filter(function (g) { return g && typeof g === "object"; }).map(function (g) {
       return {
+        id: Number.isFinite(Number(g.id)) ? Number(g.id) : uniqueId(),
         title: String(g.title || "").trim() || "Цель",
         price: Math.max(1, toInt(g.price) || 1),
         deadline: g.deadline ? String(g.deadline) : "",
@@ -156,8 +157,23 @@ try {
 
         firebaseRef.on("value", function (snap) {
           var raw = snap.val();
-          if (raw) data = normalize(raw);
-          else { data = createInitialData(); firebaseRef.set(data); }
+          if (raw) {
+            // Защита от гонки: если есть локальные изменения, ещё не улетевшие в Firebase — не затираем
+            if (lastSyncedData) {
+              var localStr, syncStr;
+              try { localStr = JSON.stringify(data); } catch (e) { localStr = ""; }
+              try { syncStr = JSON.stringify(lastSyncedData); } catch (e) { syncStr = ""; }
+              if (localStr !== syncStr) {
+                console.warn("Пропускаю серверное обновление — есть несинхронизированные локальные изменения");
+                setSyncStatus("online", "");
+                return;
+              }
+            }
+            data = normalize(raw);
+          } else {
+            data = createInitialData();
+            firebaseRef.set(data);
+          }
           lastSyncedData = JSON.parse(JSON.stringify(data));
           try {
             localStore.set(STORAGE_KEY, JSON.stringify(stripPhotos(data)));
@@ -220,7 +236,36 @@ function computeDiff(newData, oldData) {
   return diff;
 }
 
+/* Обрезка истории: не даём данным расти бесконечно */
+function trimData() {
+  var LIMIT_TX = 500;
+  var LIMIT_COMPLETIONS = 400;
+  var LIMIT_GRADES = 300;
+  var LIMIT_WITHDRAW = 100;
+
+  if (data.transactions.length > LIMIT_TX) {
+    data.transactions = data.transactions.slice(0, LIMIT_TX);
+  }
+  if (data.completions.length > LIMIT_COMPLETIONS) {
+    var pending = [];
+    var rest = [];
+    data.completions.forEach(function (c) {
+      if (c.status === "pending") pending.push(c);
+      else rest.push(c);
+    });
+    rest.sort(function (a, b) { return (b.approvedAt || 0) - (a.approvedAt || 0); });
+    data.completions = pending.concat(rest).slice(0, LIMIT_COMPLETIONS);
+  }
+  if (data.grades.length > LIMIT_GRADES) {
+    data.grades = data.grades.slice(0, LIMIT_GRADES);
+  }
+  if (data.withdrawRequests.length > LIMIT_WITHDRAW) {
+    data.withdrawRequests = data.withdrawRequests.slice(0, LIMIT_WITHDRAW);
+  }
+}
+
 function saveData() {
+  trimData();
   try {
     var forLocal = stripPhotos(data);
     localStore.set(STORAGE_KEY, JSON.stringify(forLocal));

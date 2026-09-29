@@ -242,12 +242,7 @@ function renderMainGoal() {
 }
 
 function sortedGoals() {
-  return data.goals.map(function (g, i) {
-    var copy = {};
-    for (var k in g) if (Object.prototype.hasOwnProperty.call(g, k)) copy[k] = g[k];
-    copy._origIndex = i;
-    return copy;
-  }).sort(function (a, b) {
+  return data.goals.slice().sort(function (a, b) {
     if (a.important && !b.important) return -1;
     if (!a.important && b.important) return 1;
     return b.price - a.price;
@@ -460,13 +455,12 @@ function renderGoals(isParent) {
 }
 
 function renderGoalHero(g, isParent) {
-  var i = g._origIndex;
   var pr = Math.min(data.points, g.price);
   var p = Math.round((pr / g.price) * 100);
   var rem = Math.max(0, g.price - pr);
   var ready = pr >= g.price;
-  var claim = (!isParent && ready) ? '<button class="button button--gold button--small" type="button" data-action="claim-goal" data-index="' + i + '">🎁 Забрать награду</button>' : "";
-  var pb = isParent ? '<button class="button button--light button--small" type="button" data-action="edit-goal" data-index="' + i + '">Изменить</button> <button class="button button--danger button--small" type="button" data-action="delete-goal" data-index="' + i + '">Удалить</button>' : "";
+  var claim = (!isParent && ready) ? '<button class="button button--gold button--small" type="button" data-action="claim-goal" data-id="' + g.id + '">🎁 Забрать награду</button>' : "";
+  var pb = isParent ? '<button class="button button--light button--small" type="button" data-action="edit-goal" data-id="' + g.id + '">Изменить</button> <button class="button button--danger button--small" type="button" data-action="delete-goal" data-id="' + g.id + '">Удалить</button>' : "";
 
   var dH = "";
   if (g.deadline) {
@@ -495,12 +489,11 @@ function renderGoalHero(g, isParent) {
 }
 
 function renderGoalMini(g, isParent) {
-  var i = g._origIndex;
   var pr = Math.min(data.points, g.price);
   var p = Math.round((pr / g.price) * 100);
   var ready = pr >= g.price;
-  var claim = (!isParent && ready) ? '<button class="button button--gold button--small" type="button" data-action="claim-goal" data-index="' + i + '">🎁 Забрать</button>' : "";
-  var pb = isParent ? '<button class="button button--light button--small" type="button" data-action="edit-goal" data-index="' + i + '">Изменить</button> <button class="button button--danger button--small" type="button" data-action="delete-goal" data-index="' + i + '">Удалить</button>' : "";
+  var claim = (!isParent && ready) ? '<button class="button button--gold button--small" type="button" data-action="claim-goal" data-id="' + g.id + '">🎁 Забрать</button>' : "";
+  var pb = isParent ? '<button class="button button--light button--small" type="button" data-action="edit-goal" data-id="' + g.id + '">Изменить</button> <button class="button button--danger button--small" type="button" data-action="delete-goal" data-id="' + g.id + '">Удалить</button>' : "";
   var ms = [25, 50, 75].map(function (m) {
     return '<span class="goal-progress__milestone ' + (p >= m ? "is-reached" : "") + '" style="left:' + m + '%">' + m + '</span>';
   }).join("");

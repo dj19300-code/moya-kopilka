@@ -762,7 +762,7 @@ function bindEvents() {
     var bulkBtn = e.target.closest("[data-bulk]");
     if (bulkBtn) { e.preventDefault(); handleBulkAction(bulkBtn.dataset.bulk); return; }
 
-    var btn = e.target.closest("[data-action], #exchangeButton, #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, #requestWithdrawButton, [data-close-modal]");
+    var btn = e.target.closest("[data-action], #exchangeButton, #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #enableNotificationsButton, #openBalanceManage, #requestWithdrawButton, [data-close-modal]");
     if (!btn) return;
 
     var id = btn.id;

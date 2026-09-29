@@ -16,35 +16,58 @@ function pushPermissionGranted() {
 }
 
 function requestPushPermission() {
+  console.log("Push: запрос разрешения. Notification=", typeof Notification, "SW=", "serviceWorker" in navigator);
   if (!pushSupported()) {
     showToast("Уведомления не поддерживаются браузером");
+    console.warn("Push: Notification или serviceWorker недоступны. Возможно, приложение открыто не в режиме PWA на iOS.");
     return;
   }
   if (Notification.permission === "granted") {
     showToast("Уведомления уже включены ✓", "success");
+    refreshPushBlock();
     return;
   }
   if (Notification.permission === "denied") {
     showToast("Уведомления запрещены в настройках браузера");
+    console.warn("Push: разрешение ранее отклонено. Сбросьте в настройках сайта.");
     return;
   }
-  Notification.requestPermission().then(function (perm) {
-    if (perm === "granted") {
-      showToast("Уведомления включены 🔔", "success");
-      showLocalNotification(
-        "Моя копилка",
-        "Уведомления включены. Сюда будут приходить заявки от ребёнка.",
-        "push-test-" + Date.now(),
-        null
-      );
+
+  var result;
+  try {
+    result = Notification.requestPermission();
+  } catch (e) {
+    console.error("Push: requestPermission бросил исключение", e);
+    showToast("Ошибка: " + (e.message || "не удалось запросить"));
+    return;
+  }
+
+  // requestPermission может вернуть Promise (новые браузеры) или undefined (старые)
+  if (result && typeof result.then === "function") {
+    result.then(function (perm) {
+      console.log("Push: результат запроса =", perm);
+      if (perm === "granted") {
+        showToast("Уведомления включены 🔔", "success");
+        showLocalNotification(
+          "Моя копилка",
+          "Уведомления включены. Сюда будут приходить заявки от ребёнка.",
+          "push-test-" + Date.now(),
+          null
+        );
+      } else {
+        showToast("Уведомления не разрешены");
+      }
       refreshPushBlock();
-    } else {
-      showToast("Уведомления не разрешены");
+    }).catch(function (err) {
+      console.error("Push: ошибка запроса", err);
+      showToast("Не удалось запросить разрешение");
       refreshPushBlock();
-    }
-  }).catch(function () {
-    showToast("Не удалось запросить разрешение");
-  });
+    });
+  } else {
+    // старый API (Safari до 16) — результат придёт через колбэк
+    // но в 2024+ это практически не встречается
+    showToast("Браузер вернул ответ без Promise — попробуйте обновить страницу");
+  }
 }
 
 function refreshPushBlock() {

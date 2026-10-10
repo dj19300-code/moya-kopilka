@@ -374,6 +374,9 @@ function initPullToRefresh() {
         firebaseRef.once("value").then(function (snap) {
           var raw = snap.val();
           if (raw) data = normalize(raw);
+          if (typeof checkBadges === "function") {
+            try { checkBadges({ silent: true }); } catch (e) {}
+          }
           lastSyncedData = JSON.parse(JSON.stringify(data));
           paintStartScreen();
           render();
@@ -550,7 +553,6 @@ function getSearchItems() {
     });
   });
 
-  // Достижения
   items.push({
     kind: "action", icon: "🏆", title: "Достижения", hint: "",
     action: function () { openBadgesModal(); },
@@ -763,7 +765,7 @@ function bindEvents() {
     var bulkBtn = e.target.closest("[data-bulk]");
     if (bulkBtn) { e.preventDefault(); handleBulkAction(bulkBtn.dataset.bulk); return; }
 
-    var btn = e.target.closest("[data-action], #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, [data-close-modal]");
+    var btn = e.target.closest("[data-action], #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #resetBadgesButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, [data-close-modal]");
     if (!btn) return;
 
     var id = btn.id;
@@ -794,6 +796,7 @@ function bindEvents() {
     if (id === "resetBalanceButton") return resetBalanceOnly();
     if (id === "clearHistoryButton") return clearHistoryOnly();
     if (id === "resetLevelButton") return resetLevelOnly();
+    if (id === "resetBadgesButton") return resetBadges();
     if (id === "editLevelButton") {
       document.getElementById("levelEditValue").value = data.totalEarnedPoints;
       return openModal("levelEditModal");
@@ -1083,6 +1086,7 @@ function bindEvents() {
         g.value = v;
         g.payment = newPay;
         g.penalty = newPenaltyActual;
+        g.ts = Date.now();
 
         if (diff) addTransaction("Изменение оценки: " + sub, { byn: diff });
         if (newPenaltyActual) {
@@ -1112,7 +1116,8 @@ function bindEvents() {
           value: v,
           payment: newPay,
           penalty: newPenaltyActual2,
-          date: today()
+          date: today(),
+          ts: Date.now()
         });
         if (newPay) addTransaction("Оценка " + v + ": " + sub, { byn: newPay });
         if (newPenaltyActual2) {

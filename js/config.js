@@ -86,34 +86,53 @@ var KNOWN_SUBJECTS = ["Математика","Русский язык","Бело
 
 /* ============================================================
    Достижения (бейджи).
-   check(d) — функция, которая по текущим данным решает,
-   заслужил ли ребёнок бейдж.
+
+   check(d, since) — d это текущие data, since это data.badgesResetAt.
+   Если since === 0 — учитываем все события.
+   Если since > 0 — только события с ts/approvedAt > since.
    ============================================================ */
+
+function _after(ts, since) {
+  if (!since) return true;      // до сброса — все события идут в зачёт
+  return (ts || 0) > since;     // после сброса — только новые
+}
 
 var BADGES = [
   {
     id: "first_ten", icon: "🥇", title: "Первая десятка",
     desc: "Получить оценку 10",
-    check: function (d) { return d.grades.some(function (g) { return g.value === 10; }); }
+    check: function (d, since) {
+      return d.grades.some(function (g) { return g.value === 10 && _after(g.ts, since); });
+    }
   },
   {
     id: "excellent", icon: "📚", title: "Отличник",
     desc: "5 оценок 9 или 10",
-    check: function (d) { return d.grades.filter(function (g) { return g.value >= 9; }).length >= 5; }
+    check: function (d, since) {
+      return d.grades.filter(function (g) { return g.value >= 9 && _after(g.ts, since); }).length >= 5;
+    }
   },
   {
     id: "first_goal", icon: "🎯", title: "Первая цель",
     desc: "Получить награду за цель",
-    check: function (d) {
+    check: function (d, since) {
       return d.transactions.some(function (t) {
-        return typeof t.description === "string" && t.description.indexOf("🎁 Награда:") === 0;
+        return typeof t.description === "string" &&
+               t.description.indexOf("🎁 Награда:") === 0 &&
+               _after(t.ts, since);
       });
     }
   },
   {
     id: "chores_10", icon: "💪", title: "Трудяга",
     desc: "10 заданий за неделю",
-    check: function (d) { return countApprovedForWeek(d) >= 10; }
+    check: function (d, since) {
+      var weekAgo = Date.now() - 7 * 86400000;
+      var cut = Math.max(since || 0, weekAgo);
+      return d.completions.filter(function (c) {
+        return c.status === "approved" && (c.approvedAt || 0) > cut;
+      }).length >= 10;
+    }
   },
   {
     id: "streak_3", icon: "🔥", title: "Три дня подряд",
@@ -133,27 +152,57 @@ var BADGES = [
   {
     id: "balance_10", icon: "💰", title: "Первая десятка BYN",
     desc: "Накопить 10 BYN",
-    check: function (d) { return d.balance >= 10; }
+    check: function (d, since) {
+      var sum = 0;
+      d.transactions.forEach(function (t) {
+        if (t.byn > 0 && _after(t.ts, since)) sum += t.byn;
+      });
+      return sum >= 10;
+    }
   },
   {
     id: "points_100", icon: "⭐", title: "Сотня",
     desc: "Заработать 100 баллов",
-    check: function (d) { return d.totalEarnedPoints >= 100; }
+    check: function (d, since) {
+      var sum = 0;
+      d.transactions.forEach(function (t) {
+        if (t.points > 0 && _after(t.ts, since)) sum += t.points;
+      });
+      return sum >= 100;
+    }
   },
   {
     id: "points_1000", icon: "🌟", title: "Тысячник",
     desc: "Заработать 1000 баллов",
-    check: function (d) { return d.totalEarnedPoints >= 1000; }
+    check: function (d, since) {
+      var sum = 0;
+      d.transactions.forEach(function (t) {
+        if (t.points > 0 && _after(t.ts, since)) sum += t.points;
+      });
+      return sum >= 1000;
+    }
   },
   {
     id: "level_dragon", icon: "🐉", title: "Настоящий дракон",
     desc: "Достичь уровня «Дракон»",
-    check: function (d) { return d.totalEarnedPoints >= 1200; }
+    check: function (d, since) {
+      var sum = 0;
+      d.transactions.forEach(function (t) {
+        if (t.points > 0 && _after(t.ts, since)) sum += t.points;
+      });
+      return sum >= 1200;
+    }
   },
   {
     id: "level_legend", icon: "🦸", title: "Легенда",
     desc: "Достичь высшего уровня",
-    check: function (d) { return d.totalEarnedPoints >= 5000; }
+    check: function (d, since) {
+      var sum = 0;
+      d.transactions.forEach(function (t) {
+        if (t.points > 0 && _after(t.ts, since)) sum += t.points;
+      });
+      return sum >= 5000;
+    }
   }
 ];
 
@@ -161,5 +210,5 @@ var DATA_KEYS = [
   "balance","points","totalEarnedPoints","lastLevel","avatar","lastTreasureDate","guffyMode",
   "profile","chores","completions","grades","gradeRequests","withdrawRequests",
   "goals","transactions","notifications",
-  "streak","streakBest","streakLastDate","badges"
+  "streak","streakBest","streakLastDate","badges","badgesResetAt"
 ];

@@ -10,7 +10,6 @@ function approveGrade(id) {
   var p = paymentForGrade(r.value, r.subject);
   var penalty = penaltyPointsForGrade(r.value);
 
-  // Считаем, сколько штрафа реально спишется (не ниже нуля)
   var actualPenalty = 0;
   if (penalty < 0) {
     actualPenalty = -Math.min(Math.abs(penalty), Math.max(0, data.points));
@@ -23,7 +22,8 @@ function approveGrade(id) {
     value: r.value,
     date: r.date,
     payment: p,
-    penalty: actualPenalty
+    penalty: actualPenalty,
+    ts: Date.now()
   });
 
   if (p) addTransaction("Оценка " + r.value + ": " + r.subject, { byn: p });
@@ -68,7 +68,6 @@ function deleteGrade(id) {
 
   if (g.payment) addTransaction("Отмена оценки: " + g.subject, { byn: -g.payment });
 
-  // Возвращаем ровно тот штраф, который был списан (g.penalty), а не теоретический
   var refundPenalty = g.penalty || 0;
   if (refundPenalty) {
     addTransaction("Отмена штрафа за оценку: " + g.subject, {
@@ -480,6 +479,23 @@ function resetPointsOnly() { if (!confirm("Обнулить баллы?")) retur
 function resetBalanceOnly() { if (!confirm("Обнулить баланс?")) return; data.balance = 0; saveData(); closeModal(); showToast("Баланс обнулён"); }
 function clearHistoryOnly() { if (!confirm("Очистить историю?")) return; data.transactions = []; saveData(); closeModal(); showToast("История очищена"); }
 function resetLevelOnly() { if (!confirm("Сбросить уровень?")) return; data.totalEarnedPoints = 0; data.lastLevel = LEVELS[0].name; saveData(); closeModal(); showToast("Уровень сброшен"); }
+
+/* Сброс бейджей и стрика.
+   Ставим badgesResetAt = Date.now() — с этого момента старые
+   достижения (баллы, оценки, задания) больше не восстанавливают
+   бейджи, даже при silent-пересчёте. */
+function resetBadges() {
+  if (!confirm("Сбросить достижения и серию дней? Баллы и история останутся.")) return;
+  data.badges = [];
+  data.streak = 0;
+  data.streakBest = 0;
+  data.streakLastDate = "";
+  data.badgesResetAt = Date.now();
+  saveData();
+  closeModal();
+  showToast("Достижения сброшены");
+}
+
 function resetEverything() {
   if (!confirm("Полный сброс?")) return;
   if (!confirm("Уверены? Это последнее подтверждение.")) return;
@@ -521,7 +537,6 @@ function openWeeklyReport() {
     '<div class="report-row"><span class="report-row__label">✅ Заданий выполнено</span><span class="report-row__value">' + r.choresDone + '</span></div>' +
     '<div class="report-row"><span class="report-row__label">🎓 Оценок получено</span><span class="report-row__value">' + r.gradesCount + (r.gradesCount ? " (ср. " + r.avg + ")" : "") + '</span></div>';
 
-  // Открываем модалку до отрисовки canvas, чтобы у него были размеры
   openModal("reportModal");
   setTimeout(function () {
     try { renderActivityChart(); } catch (e) { logWarn("Chart error:", e); }
@@ -533,6 +548,19 @@ function openWeeklyReport() {
    ============================================================ */
 
 function openBadgesModal() {
+  // Silent-пересчёт бейджей: подтягивает достижения, заработанные
+  // на других устройствах, но не учитывает события ДО сброса
+  // (благодаря badgesResetAt).
+  var had = false;
+  if (typeof checkBadges === "function") {
+    try {
+      var added = checkBadges({ silent: true });
+      if (added > 0) had = true;
+    } catch (e) { logWarn("checkBadges error:", e); }
+  }
+  if (had) {
+    try { saveData(); } catch (e) {}
+  }
   renderBadgesModal();
   openModal("badgesModal");
 }

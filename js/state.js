@@ -16,7 +16,8 @@ function createInitialData() {
     ],
     completions: [], grades: [], gradeRequests: [], withdrawRequests: [],
     goals: [], transactions: [], notifications: [],
-    streak: 0, streakBest: 0, streakLastDate: "", badges: []
+    streak: 0, streakBest: 0, streakLastDate: "",
+    badges: [], badgesResetAt: 0
   };
 }
 
@@ -74,7 +75,8 @@ function normalize(raw) {
         value: Math.min(10, Math.max(2, toInt(g.value) || 0)),
         payment: num(g.payment),
         penalty: num(g.penalty),
-        date: String(g.date || today())
+        date: String(g.date || today()),
+        ts: num(g.ts)
       };
     }),
     gradeRequests: toArray(raw.gradeRequests).filter(function (r) { return r && typeof r === "object"; }).map(function (r) {
@@ -111,7 +113,8 @@ function normalize(raw) {
         description: String(t.description || "Операция"),
         byn: num(t.byn != null ? t.byn : t.amount),
         points: num(t.points),
-        date: String(t.date || today())
+        date: String(t.date || today()),
+        ts: num(t.ts)
       };
     }),
     notifications: toArray(raw.notifications).filter(function (n) { return n && typeof n === "object"; }).map(function (n) {
@@ -128,7 +131,8 @@ function normalize(raw) {
     streak: Math.max(0, toInt(raw.streak) || 0),
     streakBest: Math.max(0, toInt(raw.streakBest) || 0),
     streakLastDate: String(raw.streakLastDate || ""),
-    badges: Array.isArray(raw.badges) ? raw.badges.filter(function (x) { return typeof x === "string"; }) : []
+    badges: Array.isArray(raw.badges) ? raw.badges.filter(function (x) { return typeof x === "string"; }) : [],
+    badgesResetAt: num(raw.badgesResetAt)
   };
 }
 
@@ -460,30 +464,45 @@ function updateStreak() {
   }
 }
 
-/* ---------- Бейджи ---------- */
+/* ---------- Бейджи ----------
+   opts.silent = true — не показывать тосты/уведомления.
+   Возвращает количество новых бейджей.
 
-function checkBadges() {
+   ВАЖНО: если data.badgesResetAt > 0, все проверки работают
+   только по событиям, произошедшим ПОСЛЕ этого времени.
+   Это значит, что после сброса старые баллы/оценки/задания
+   больше не воскрешают бейджи.
+*/
+function checkBadges(opts) {
+  opts = opts || {};
+  var silent = !!opts.silent;
+
   if (!Array.isArray(data.badges)) data.badges = [];
-  if (typeof BADGES === "undefined" || !BADGES.length) return;
+  if (typeof BADGES === "undefined" || !BADGES.length) return 0;
 
+  var since = data.badgesResetAt || 0;
   var newOnes = [];
   BADGES.forEach(function (b) {
     if (data.badges.indexOf(b.id) >= 0) return;
     var ok = false;
-    try { ok = !!b.check(data); } catch (e) { ok = false; }
+    try { ok = !!b.check(data, since); } catch (e) { ok = false; }
     if (ok) {
       data.badges.push(b.id);
       newOnes.push(b);
     }
   });
 
-  newOnes.forEach(function (b, i) {
-    addNotification("child", "🏆 Новое достижение: «" + b.title + "»", "🏆");
-    setTimeout(function () {
-      showToast(b.icon + " " + b.title, "levelup");
-      spawnConfetti(24);
-    }, 600 + i * 900);
-  });
+  if (!silent) {
+    newOnes.forEach(function (b, i) {
+      addNotification("child", "🏆 Новое достижение: «" + b.title + "»", "🏆");
+      setTimeout(function () {
+        showToast(b.icon + " " + b.title, "levelup");
+        spawnConfetti(24);
+      }, 600 + i * 900);
+    });
+  }
+
+  return newOnes.length;
 }
 
 function isChoreActiveToday(c) {
@@ -531,11 +550,8 @@ function checkDailyTreasure() {
 }
 
 /* addTransaction — центральная функция начисления/списания.
-   Опции:
-     byn         — изменение баланса (может быть отрицательным)
-     points      — изменение баллов (может быть отрицательным)
-     affectLevel — если true и points < 0, списание уменьшает totalEarnedPoints
-     capAtZero   — если true, списание не уводит balance/points/totalEarnedPoints ниже нуля
+   Каждая транзакция получает ts: Date.now(), чтобы бейджи
+   могли учитывать только события после сброса.
 */
 function addTransaction(d, opts) {
   opts = opts || {};
@@ -556,7 +572,13 @@ function addTransaction(d, opts) {
 
   if (!byn && !points) return;
 
-  data.transactions.unshift({ description: d, byn: byn, points: points, date: today() });
+  data.transactions.unshift({
+    description: d,
+    byn: byn,
+    points: points,
+    date: today(),
+    ts: Date.now()
+  });
   data.balance += byn;
   data.points += points;
   if (points > 0) data.totalEarnedPoints += points;
@@ -568,7 +590,6 @@ function addTransaction(d, opts) {
   if (data.points < 0) data.points = 0;
 
   // Стрик и бейджи — только для положительных «настоящих» начислений.
-  // Отмены, изменения и штрафы не считаются активностью.
   var positive = (points > 0) || (byn > 0);
   var isCorrection = /^(Отмена|Изменение|Штраф)/.test(d);
   if (positive && !isCorrection) {

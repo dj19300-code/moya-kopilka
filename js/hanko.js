@@ -9,7 +9,6 @@ import { en } from "https://esm.run/@teamhanko/hanko-elements/i18n/en";
 
 const HANKO_EMAIL_KEY = "hanko_parent_email";
 
-// Русские надписи (Hanko не имеет русского из коробки)
 en.labels.email = "Email";
 en.labels.continue = "Продолжить";
 en.labels.or = "или";
@@ -21,21 +20,36 @@ en.headlines.signIn = "Вход для родителя";
 
 let hankoInstance = null;
 
+// Функция, которая сохраняет email текущего пользователя, если он есть
+function trySaveEmail() {
+  try {
+    if (!hankoInstance || !hankoInstance.user) return;
+    if (typeof hankoInstance.user.getCurrent !== "function") return;
+    hankoInstance.user.getCurrent().then(function (user) {
+      if (user && user.email) {
+        localStorage.setItem(HANKO_EMAIL_KEY, user.email);
+        if (typeof log === "function") log("Hanko email saved:", user.email);
+      }
+    }).catch(function (e) {
+      if (typeof logWarn === "function") logWarn("getCurrent failed:", e);
+    });
+  } catch (e) {}
+}
+
 try {
   const { hanko } = await register(HANKO_API_URL, { translations: { en } });
   hankoInstance = hanko;
 
+  // 1. Сохраняем email, когда создаётся новая сессия
   hanko.onSessionCreated(() => {
-    try {
-      if (hanko.user && typeof hanko.user.getCurrent === "function") {
-        hanko.user.getCurrent().then(function (user) {
-          if (user && user.email) localStorage.setItem(HANKO_EMAIL_KEY, user.email);
-        }).catch(function () {});
-      }
-    } catch (e) {}
+    trySaveEmail();
     if (typeof closeModal === "function") closeModal();
     if (typeof enterCabinet === "function") enterCabinet("parent");
   });
+
+  // 2. Сохраняем email, когда сессия уже была ДО загрузки страницы
+  //    (это наш случай — ты уже вошёл под обоими родителями)
+  trySaveEmail();
 
   hanko.onSessionExpired(() => {
     if (currentRole === "parent" && typeof returnToStart === "function") returnToStart();
@@ -68,7 +82,6 @@ window.showHankoAuth = function () {
   return true;
 };
 
-// Обычная форма Hanko (первый вход или смена аккаунта)
 function showHankoForm(container, email) {
   container.innerHTML = "";
   const el = document.createElement("hanko-auth");
@@ -78,7 +91,6 @@ function showHankoForm(container, email) {
   container.appendChild(el);
 }
 
-// Наша кнопка биометрии (email уже сохранён)
 function showBiometricButton(container, email) {
   var safeEmail = String(email).replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -109,7 +121,6 @@ function showBiometricButton(container, email) {
   });
 }
 
-// Рендерим hanko-auth с shadow=false, ждём появления кнопки passkey и кликаем по ней
 function triggerPasskeyLogin(container, email) {
   container.innerHTML = '<p class="modal-hint" style="text-align:center;">Запрашиваю биометрию…</p>';
 

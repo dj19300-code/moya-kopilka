@@ -210,3 +210,11 @@ var DATA_KEYS = [
   "goals","transactions","notifications",
   "streak","streakBest","streakLastDate","badges","badgesResetAt"
 ];
+/* ============================================================
+   Родители (email из Hanko Console → Users)
+   Подставь свои реальные email, которые ты вводил при регистрации.
+   ============================================================ */
+var PARENT_ACCOUNTS = [
+  { label: "👨 Папа",  email: "dj19300@yandex.ru" },
+  { label: "👩 Мама",  email: "leralera2701@yandex.ru" }
+];

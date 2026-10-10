@@ -550,6 +550,13 @@ function getSearchItems() {
     });
   });
 
+  // Достижения
+  items.push({
+    kind: "action", icon: "🏆", title: "Достижения", hint: "",
+    action: function () { openBadgesModal(); },
+    search: "достижения бейджи награды badges achievements"
+  });
+
   if (isParent) {
     items.push({
       kind: "action", icon: "📋", title: "Новое задание", hint: "Ctrl+N",
@@ -569,7 +576,7 @@ function getSearchItems() {
     items.push({
       kind: "action", icon: "📊", title: "Отчёт за неделю", hint: "",
       action: function () { openWeeklyReport(); },
-      search: "отчёт неделя статистика report"
+      search: "отчёт неделя статистика report график"
     });
     items.push({
       kind: "action", icon: "💰", title: "Управление балансом", hint: "",
@@ -767,6 +774,7 @@ function bindEvents() {
     if (action === "share") return handleShare();
     if (action === "open-search") return openSearch();
     if (action === "open-notifications") return openNotificationsModal();
+    if (action === "open-badges") return openBadgesModal();
     if (action === "change-cabinet") return returnToStart();
     if (action === "open-advanced") {
       var elGM = document.getElementById("guffyModeSelect");
@@ -1059,7 +1067,6 @@ function bindEvents() {
         var oldPenalty = g.penalty || 0;
         var diff = newPay - (g.payment || 0);
 
-        // Отменяем старый штраф — возвращаем ровно то, что было списано
         if (oldPenalty < 0) {
           addTransaction("Отмена штрафа за оценку: " + g.subject, {
             points: -oldPenalty,
@@ -1067,7 +1074,6 @@ function bindEvents() {
           });
         }
 
-        // Считаем новый штраф с учётом текущих баллов
         var newPenaltyActual = 0;
         if (newPenaltyTheoretical < 0) {
           newPenaltyActual = -Math.min(Math.abs(newPenaltyTheoretical), Math.max(0, data.points));

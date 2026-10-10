@@ -84,8 +84,82 @@ var CHORE_TEMPLATES = [
 var MATH_SUBJECT = "Математика";
 var KNOWN_SUBJECTS = ["Математика","Русский язык","Белорусский язык","Литературное чтение","Окружающий мир","Английский язык","Трудовое обучение","Изобразительное искусство","Физическая культура"];
 
+/* ============================================================
+   Достижения (бейджи).
+   check(d) — функция, которая по текущим данным решает,
+   заслужил ли ребёнок бейдж.
+   ============================================================ */
+
+var BADGES = [
+  {
+    id: "first_ten", icon: "🥇", title: "Первая десятка",
+    desc: "Получить оценку 10",
+    check: function (d) { return d.grades.some(function (g) { return g.value === 10; }); }
+  },
+  {
+    id: "excellent", icon: "📚", title: "Отличник",
+    desc: "5 оценок 9 или 10",
+    check: function (d) { return d.grades.filter(function (g) { return g.value >= 9; }).length >= 5; }
+  },
+  {
+    id: "first_goal", icon: "🎯", title: "Первая цель",
+    desc: "Получить награду за цель",
+    check: function (d) {
+      return d.transactions.some(function (t) {
+        return typeof t.description === "string" && t.description.indexOf("🎁 Награда:") === 0;
+      });
+    }
+  },
+  {
+    id: "chores_10", icon: "💪", title: "Трудяга",
+    desc: "10 заданий за неделю",
+    check: function (d) { return countApprovedForWeek(d) >= 10; }
+  },
+  {
+    id: "streak_3", icon: "🔥", title: "Три дня подряд",
+    desc: "Активность 3 дня подряд",
+    check: function (d) { return (d.streakBest || 0) >= 3; }
+  },
+  {
+    id: "streak_7", icon: "🔥🔥", title: "Неделя подряд",
+    desc: "Активность 7 дней подряд",
+    check: function (d) { return (d.streakBest || 0) >= 7; }
+  },
+  {
+    id: "streak_30", icon: "🔥🔥🔥", title: "Месяц подряд",
+    desc: "Активность 30 дней подряд",
+    check: function (d) { return (d.streakBest || 0) >= 30; }
+  },
+  {
+    id: "balance_10", icon: "💰", title: "Первая десятка BYN",
+    desc: "Накопить 10 BYN",
+    check: function (d) { return d.balance >= 10; }
+  },
+  {
+    id: "points_100", icon: "⭐", title: "Сотня",
+    desc: "Заработать 100 баллов",
+    check: function (d) { return d.totalEarnedPoints >= 100; }
+  },
+  {
+    id: "points_1000", icon: "🌟", title: "Тысячник",
+    desc: "Заработать 1000 баллов",
+    check: function (d) { return d.totalEarnedPoints >= 1000; }
+  },
+  {
+    id: "level_dragon", icon: "🐉", title: "Настоящий дракон",
+    desc: "Достичь уровня «Дракон»",
+    check: function (d) { return d.totalEarnedPoints >= 1200; }
+  },
+  {
+    id: "level_legend", icon: "🦸", title: "Легенда",
+    desc: "Достичь высшего уровня",
+    check: function (d) { return d.totalEarnedPoints >= 5000; }
+  }
+];
+
 var DATA_KEYS = [
   "balance","points","totalEarnedPoints","lastLevel","avatar","lastTreasureDate","guffyMode",
   "profile","chores","completions","grades","gradeRequests","withdrawRequests",
-  "goals","transactions","notifications"
+  "goals","transactions","notifications",
+  "streak","streakBest","streakLastDate","badges"
 ];

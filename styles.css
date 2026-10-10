@@ -517,6 +517,36 @@ body.dark .hero-tools {
 }
 .child-hero__sub strong { color: #DB2777; font-weight: 800; }
 
+/* Стрик */
+.child-hero__streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #FFE4B5, #FFC966);
+  color: #7A4A00;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: 'Fredoka', sans-serif;
+  letter-spacing: .3px;
+  border: 2px solid #FFB84D;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, .28);
+  position: relative;
+  z-index: 1;
+}
+.child-hero__streak::before {
+  content: "🔥";
+  font-size: 15px;
+}
+body.dark .child-hero__streak {
+  background: linear-gradient(135deg, #5A3A10, #7A4A10);
+  color: #FFD98A;
+  border-color: #8A5A20;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, .2);
+}
+
 /* ============ Баннер родителя ============ */
 .parent-hero {
   background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 55%, #DDD6FE 100%);
@@ -848,6 +878,125 @@ body.dark .button--danger { color: #FFA6A6; background: #3D2424; }
 .report-row__label { display: flex; align-items: center; gap: 10px; color: #6D28D9; font-size: 14px; font-weight: 700; }
 .report-row__value { font-weight: 800; font-size: 18px; color: #3B1F5C; font-family: 'Fredoka', sans-serif; }
 .report-empty { text-align: center; color: #8B7DA5; padding: 20px; font-size: 14px; font-weight: 600; }
+
+/* ============ График активности ============ */
+.report-chart-wrap {
+  margin-top: 12px;
+  padding: 14px 14px 10px;
+  border: 1px solid #EDE4FF;
+  border-radius: 16px;
+  background: #FAF6FF;
+}
+body.dark .report-chart-wrap {
+  background: #1E1B2E;
+  border-color: #3A3555;
+}
+.report-chart-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: #6D28D9;
+  margin-bottom: 8px;
+}
+body.dark .report-chart-title { color: #C4B5FD; }
+.report-chart-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.report-chart-legend {
+  font-size: 11px;
+  color: #8B7DA5;
+  font-weight: 600;
+  margin-top: 6px;
+  text-align: right;
+}
+body.dark .report-chart-legend { color: #A89BB0; }
+
+/* ============ Бейджи ============ */
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.badge-card {
+  position: relative;
+  padding: 14px 12px;
+  border: 2px solid #E8DDFF;
+  border-radius: 16px;
+  background: #FAF6FF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  opacity: 0.55;
+  filter: grayscale(0.6);
+  transition: transform .15s, box-shadow .15s, opacity .15s, filter .15s;
+}
+.badge-card.is-earned {
+  opacity: 1;
+  filter: none;
+  background: linear-gradient(135deg, #FFF8E0 0%, #FFE9C0 100%);
+  border-color: #FBBF24;
+  box-shadow: 0 6px 18px rgba(251, 191, 36, .3);
+}
+.badge-card.is-earned::after {
+  content: "✓";
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FBBF24, #D97706);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, .4);
+}
+.badge-card__icon {
+  font-size: 34px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.badge-card__title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3B1F5C;
+  line-height: 1.2;
+}
+.badge-card__desc {
+  font-size: 11px;
+  color: #8B7DA5;
+  font-weight: 600;
+  line-height: 1.35;
+}
+body.dark .badge-card {
+  background: #1E1B2E;
+  border-color: #3A3555;
+}
+body.dark .badge-card.is-earned {
+  background: linear-gradient(135deg, #4A3A20, #5A4010);
+  border-color: #FBBF24;
+  box-shadow: 0 6px 18px rgba(251, 191, 36, .2);
+}
+body.dark .badge-card__title { color: #F5EBF5; }
+body.dark .badge-card__desc { color: #A89BB0; }
+
+@media (max-width: 640px) {
+  .badges-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .badge-card { padding: 10px 8px; }
+  .badge-card__icon { font-size: 28px; }
+  .badge-card__title { font-size: 12px; }
+  .badge-card__desc { font-size: 10px; }
+}
 
 .toast { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 100; display: none; padding: 14px 20px; color: #fff; border-radius: 16px; background: linear-gradient(135deg, #8B5CF6, #7C3AED); box-shadow: 0 15px 40px rgba(76, 29, 149, .4); max-width: calc(100vw - 40px); font-size: 14px; font-weight: 700; font-family: 'Nunito', sans-serif; }
 .toast--success { background: linear-gradient(135deg, #2DD4BF, #0D9488); }
@@ -1632,6 +1781,7 @@ body.dark .button--copy {
   .pending-checkbox input[type=checkbox] { width: 22px; height: 22px; }
   .grade-filters select { flex: 1 1 100%; }
 }
+
 /* ============================================================
    Push-уведомления: блок разрешения + подсветка
    ============================================================ */
@@ -1683,6 +1833,7 @@ body.dark .highlight-flash {
     background-color: inherit;
   }
 }
+
 /* ============================================================
    Настройки: секция уведомлений
    ============================================================ */

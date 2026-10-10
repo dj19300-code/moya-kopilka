@@ -75,6 +75,7 @@
         <div class="child-hero__greeting" id="childHeroGreeting">Добрый день ☀️</div>
         <div class="child-hero__title" id="childHeroTitle">Привет!</div>
         <div class="child-hero__sub" id="childHeroSub">Уровень: Яйцо</div>
+        <div class="child-hero__streak hidden" id="childHeroStreak"></div>
       </div>
       <div class="hero-tools">
         <button class="hero-tool" type="button" data-action="open-search" title="Поиск (Ctrl+K)">
@@ -83,6 +84,7 @@
             <line x1="16" y1="16" x2="21" y2="21"></line>
           </svg>
         </button>
+        <button class="hero-tool" type="button" data-action="open-badges" title="Достижения">🏆</button>
         <button class="hero-tool" type="button" data-action="share" title="Поделиться">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
@@ -368,11 +370,20 @@
     </form>
   </div>
 
-      <div class="modal hidden" id="notificationsModal">
+  <div class="modal hidden" id="notificationsModal">
     <h3>🔔 Уведомления</h3>
     <div class="list" id="notificationsList"></div>
     <div class="modal-actions">
       <button class="button button--light" id="clearNotificationsBtn" type="button">Очистить</button>
+      <button class="button button--primary" type="button" data-close-modal>Закрыть</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="badgesModal">
+    <h3>🏆 Достижения</h3>
+    <p class="modal-hint" id="badgesSummary" style="margin:-8px 0 14px 0"></p>
+    <div class="badges-grid" id="badgesGrid"></div>
+    <div class="modal-actions">
       <button class="button button--primary" type="button" data-close-modal>Закрыть</button>
     </div>
   </div>
@@ -607,12 +618,17 @@
   <div class="modal hidden" id="reportModal">
     <h3>📊 Отчёт за неделю</h3>
     <div id="reportContent"></div>
+    <div class="report-chart-wrap">
+      <div class="report-chart-title">Активность за 30 дней</div>
+      <canvas id="activityCanvas" class="report-chart-canvas" width="640" height="200"></canvas>
+      <div class="report-chart-legend">баллы и BYN по дням</div>
+    </div>
     <div class="modal-actions">
       <button class="button button--primary" type="button" data-close-modal>Закрыть</button>
     </div>
   </div>
 
-    <div class="modal hidden" id="advancedModal">
+  <div class="modal hidden" id="advancedModal">
     <h3>🧪 Дополнительно</h3>
     <p class="modal-hint" style="margin:0 0 14px 0">Настройки Гуфи, уведомлений и тестовые действия.</p>
     <label>🐙 Гуфи

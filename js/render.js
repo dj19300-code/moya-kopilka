@@ -93,6 +93,16 @@ function renderChildHero() {
     }
     sub.innerHTML = parts.join(" · ");
   }
+
+  var streakEl = document.getElementById("childHeroStreak");
+  if (streakEl) {
+    if (data.streak >= 2) {
+      streakEl.textContent = data.streak + " " + pluralDays(data.streak) + " подряд!";
+      streakEl.classList.remove("hidden");
+    } else {
+      streakEl.classList.add("hidden");
+    }
+  }
 }
 
 function renderParentHero() {
@@ -378,7 +388,7 @@ function renderGrades(isParent) {
       var parts = [];
       if (g.payment > 0) parts.push('<span class="amount-positive">+' + g.payment + ' BYN</span>');
       else if (g.payment < 0) parts.push('<span class="amount-negative">' + g.payment + ' BYN</span>');
-      var penalty = penaltyPointsForGrade(g.value);
+      var penalty = g.penalty != null ? g.penalty : penaltyPointsForGrade(g.value);
       if (penalty) parts.push('<span class="amount-negative">' + penalty + ' ' + pluralPoints(Math.abs(penalty)) + '</span>');
       if (!parts.length) parts.push('<span class="amount-zero">0 BYN</span>');
       var a = parts.join(" ");
@@ -614,6 +624,160 @@ function renderChoreTemplateSelect() {
   });
   sel.innerHTML = html;
 }
+
+/* ============================================================
+   Модалка «Достижения»
+   ============================================================ */
+
+function renderBadgesModal() {
+  var grid = document.getElementById("badgesGrid");
+  var summary = document.getElementById("badgesSummary");
+  if (!grid) return;
+
+  if (!Array.isArray(data.badges)) data.badges = [];
+  var earned = data.badges.length;
+  var total = (typeof BADGES !== "undefined") ? BADGES.length : 0;
+
+  if (summary) {
+    summary.textContent = "Открыто " + earned + " из " + total;
+  }
+
+  if (!total) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state__text">Список достижений пуст</div></div>';
+    return;
+  }
+
+  grid.innerHTML = BADGES.map(function (b) {
+    var isEarned = data.badges.indexOf(b.id) >= 0;
+    return '<div class="badge-card ' + (isEarned ? "is-earned" : "") + '">' +
+      '<div class="badge-card__icon">' + b.icon + '</div>' +
+      '<div class="badge-card__title">' + escapeHtml(b.title) + '</div>' +
+      '<div class="badge-card__desc">' + escapeHtml(b.desc) + '</div>' +
+      '</div>';
+  }).join("");
+}
+
+/* ============================================================
+   График активности за 30 дней (canvas)
+   ============================================================ */
+
+function renderActivityChart() {
+  var canvas = document.getElementById("activityCanvas");
+  if (!canvas) return;
+
+  var ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  var days = getLast30Days();
+  var pointsByDay = {};
+  days.forEach(function (d) { pointsByDay[d] = 0; });
+
+  data.transactions.forEach(function (t) {
+    if (pointsByDay.hasOwnProperty(t.date) && t.points > 0) {
+      pointsByDay[t.date] += t.points;
+    }
+  });
+
+  var values = days.map(function (d) { return pointsByDay[d]; });
+  var maxVal = Math.max.apply(null, values);
+  if (maxVal < 1) maxVal = 1;
+
+  // Учитываем devicePixelRatio, чтобы не было размытия
+  var dpr = window.devicePixelRatio || 1;
+  var cssW = canvas.clientWidth || 640;
+  var cssH = canvas.clientHeight || 200;
+  if (canvas.width !== cssW * dpr) canvas.width = cssW * dpr;
+  if (canvas.height !== cssH * dpr) canvas.height = cssH * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  var isDark = document.body.classList.contains("dark");
+  var colorGrid = isDark ? "#3A3555" : "#EDE4FF";
+  var colorLabel = isDark ? "#A89BB0" : "#8B7DA5";
+  var colorBar1 = "#A78BFA";
+  var colorBar2 = "#8B5CF6";
+  var colorBarDim = isDark ? "#4A4565" : "#E8DDFF";
+
+  // Сброс
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  var padL = 6, padR = 6, padT = 10, padB = 26;
+  var chartW = cssW - padL - padR;
+  var chartH = cssH - padT - padB;
+  var barGap = 2;
+  var barW = (chartW - barGap * (days.length - 1)) / days.length;
+  if (barW < 2) barW = 2;
+
+  // Горизонтальная линия нуля
+  ctx.strokeStyle = colorGrid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT + chartH + 0.5);
+  ctx.lineTo(padL + chartW, padT + chartH + 0.5);
+  ctx.stroke();
+
+  // Столбики
+  days.forEach(function (d, i) {
+    var v = pointsByDay[d];
+    var x = padL + i * (barW + barGap);
+    var barH = v > 0 ? Math.max(2, (v / maxVal) * (chartH - 4)) : 2;
+    var y = padT + chartH - barH;
+
+    if (v > 0) {
+      var grad = ctx.createLinearGradient(0, y, 0, padT + chartH);
+      grad.addColorStop(0, colorBar1);
+      grad.addColorStop(1, colorBar2);
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = colorBarDim;
+    }
+
+    // Скруглённый верх столбика
+    var r = Math.min(3, barW / 2, barH / 2);
+    ctx.beginPath();
+    ctx.moveTo(x, y + barH);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.lineTo(x + barW - r, y);
+    ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+    ctx.lineTo(x + barW, y + barH);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Подписи: только первая, средняя и последняя даты
+  ctx.fillStyle = colorLabel;
+  ctx.font = "10px Nunito, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+
+  var labelsIdx = [0, Math.floor(days.length / 2), days.length - 1];
+  labelsIdx.forEach(function (idx, k) {
+    var d = days[idx];
+    var parts = d.split("-");
+    var label = parts[2] + "." + parts[1];
+    var x = padL + idx * (barW + barGap);
+    if (k === 1) {
+      ctx.textAlign = "center";
+      x += barW / 2;
+    } else if (k === 2) {
+      ctx.textAlign = "right";
+      x += barW;
+    } else {
+      ctx.textAlign = "left";
+    }
+    ctx.fillText(label, x, padT + chartH + 6);
+  });
+
+  // Максимум сверху слева
+  ctx.textAlign = "right";
+  ctx.fillStyle = colorLabel;
+  ctx.font = "10px Nunito, sans-serif";
+  ctx.fillText("макс: " + maxVal + " " + pluralPoints(maxVal), cssW - padR, 0);
+}
+
+/* ============================================================
+   Смена дня
+   ============================================================ */
 
 function checkDayChange() {
   var t = today();

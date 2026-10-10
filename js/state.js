@@ -15,7 +15,8 @@ function createInitialData() {
       { id: 3, title: "Убрать рабочее место", description: "Положить вещи на место", reward: 4, repeat: "weekdays", days: [], maxPerDay: 1 }
     ],
     completions: [], grades: [], gradeRequests: [], withdrawRequests: [],
-    goals: [], transactions: [], notifications: []
+    goals: [], transactions: [], notifications: [],
+    streak: 0, streakBest: 0, streakLastDate: "", badges: []
   };
 }
 
@@ -123,7 +124,11 @@ function normalize(raw) {
         date: String(n.date || today()),
         read: !!n.read
       };
-    })
+    }),
+    streak: Math.max(0, toInt(raw.streak) || 0),
+    streakBest: Math.max(0, toInt(raw.streakBest) || 0),
+    streakLastDate: String(raw.streakLastDate || ""),
+    badges: Array.isArray(raw.badges) ? raw.badges.filter(function (x) { return typeof x === "string"; }) : []
   };
 }
 
@@ -434,6 +439,53 @@ function checkGoalsReady() {
   });
 }
 
+/* ---------- Стрик (серия дней подряд) ---------- */
+
+function updateStreak() {
+  var ts = today();
+  if (data.streakLastDate === ts) return; // уже отметились сегодня
+
+  var yest = new Date();
+  yest.setDate(yest.getDate() - 1);
+  var yestStr = formatDate(yest);
+
+  if (data.streakLastDate === yestStr) {
+    data.streak = (data.streak || 0) + 1;
+  } else {
+    data.streak = 1;
+  }
+  data.streakLastDate = ts;
+  if ((data.streak || 0) > (data.streakBest || 0)) {
+    data.streakBest = data.streak;
+  }
+}
+
+/* ---------- Бейджи ---------- */
+
+function checkBadges() {
+  if (!Array.isArray(data.badges)) data.badges = [];
+  if (typeof BADGES === "undefined" || !BADGES.length) return;
+
+  var newOnes = [];
+  BADGES.forEach(function (b) {
+    if (data.badges.indexOf(b.id) >= 0) return;
+    var ok = false;
+    try { ok = !!b.check(data); } catch (e) { ok = false; }
+    if (ok) {
+      data.badges.push(b.id);
+      newOnes.push(b);
+    }
+  });
+
+  newOnes.forEach(function (b, i) {
+    addNotification("child", "🏆 Новое достижение: «" + b.title + "»", "🏆");
+    setTimeout(function () {
+      showToast(b.icon + " " + b.title, "levelup");
+      spawnConfetti(24);
+    }, 600 + i * 900);
+  });
+}
+
 function isChoreActiveToday(c) {
   var r = c.repeat || "daily";
   if (r === "daily") return true;
@@ -480,10 +532,10 @@ function checkDailyTreasure() {
 
 /* addTransaction — центральная функция начисления/списания.
    Опции:
-     byn       — изменение баланса (может быть отрицательным)
-     points    — изменение баллов (может быть отрицательным)
+     byn         — изменение баланса (может быть отрицательным)
+     points      — изменение баллов (может быть отрицательным)
      affectLevel — если true и points < 0, списание уменьшает totalEarnedPoints
-     capAtZero — если true, списание не уводит balance/points/totalEarnedPoints ниже нуля
+     capAtZero   — если true, списание не уводит balance/points/totalEarnedPoints ниже нуля
 */
 function addTransaction(d, opts) {
   opts = opts || {};
@@ -514,6 +566,15 @@ function addTransaction(d, opts) {
   }
   if (data.balance < 0) data.balance = 0;
   if (data.points < 0) data.points = 0;
+
+  // Стрик и бейджи — только для положительных «настоящих» начислений.
+  // Отмены, изменения и штрафы не считаются активностью.
+  var positive = (points > 0) || (byn > 0);
+  var isCorrection = /^(Отмена|Изменение|Штраф)/.test(d);
+  if (positive && !isCorrection) {
+    updateStreak();
+    checkBadges();
+  }
 }
 
 function cleanupOrphanCompletions() {

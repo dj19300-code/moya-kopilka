@@ -47,6 +47,19 @@ function daysBetween(a, b) {
   return Math.round((d2 - d1) / 86400000);
 }
 
+/* Массив из N последних дат (строк "YYYY-MM-DD"), включая сегодня,
+   от самой старой к самой новой. Для графика активности. */
+function getLast30Days() {
+  var out = [];
+  var now = new Date();
+  for (var i = 29; i >= 0; i--) {
+    var d = new Date(now);
+    d.setDate(d.getDate() - i);
+    out.push(formatDate(d));
+  }
+  return out;
+}
+
 function escapeHtml(v) {
   return String(v == null ? "" : v).replace(/[&<>'"]/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c];
@@ -141,6 +154,20 @@ function toArray(v) {
     }
   }
   return [];
+}
+
+/* Считает одобренные задания за последние 7 дней (сегодня + 6 назад).
+   Используется в бейдже «Трудяга». */
+function countApprovedForWeek(d) {
+  if (!d || !Array.isArray(d.completions)) return 0;
+  var now = new Date();
+  var from = new Date(now);
+  from.setDate(from.getDate() - 6);
+  var fromStr = formatDate(from);
+  var toStr = formatDate(now);
+  return d.completions.filter(function (c) {
+    return c.status === "approved" && c.date >= fromStr && c.date <= toStr;
+  }).length;
 }
 
 var localStore = {

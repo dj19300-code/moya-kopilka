@@ -327,9 +327,9 @@ function scrollAndHighlight(goto, id) {
 
 function initPush() {
   if (pushSupported()) {
-    console.log("Push permission:", Notification.permission, "enabled:", pushEnabled());
+    log("Push permission:", Notification.permission, "enabled:", pushEnabled());
   } else {
-    console.log("Push-уведомления не поддерживаются этим браузером");
+    log("Push-уведомления не поддерживаются этим браузером");
   }
 
   if ("serviceWorker" in navigator) {

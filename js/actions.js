@@ -70,10 +70,6 @@ function deleteGrade(id) {
 
   // Возвращаем ровно тот штраф, который был списан (g.penalty), а не теоретический
   var refundPenalty = g.penalty || 0;
-  if (!refundPenalty && penaltyPointsForGrade(g.value) < 0) {
-    // На случай старых записей без поля penalty — считаем, что списания не было
-    refundPenalty = 0;
-  }
   if (refundPenalty) {
     addTransaction("Отмена штрафа за оценку: " + g.subject, {
       points: -refundPenalty,
@@ -524,8 +520,26 @@ function openWeeklyReport() {
     '<div class="report-row"><span class="report-row__label">💰 Начислено денег</span><span class="report-row__value" style="color:#0D9488">+' + r.be + ' BYN</span></div>' +
     '<div class="report-row"><span class="report-row__label">✅ Заданий выполнено</span><span class="report-row__value">' + r.choresDone + '</span></div>' +
     '<div class="report-row"><span class="report-row__label">🎓 Оценок получено</span><span class="report-row__value">' + r.gradesCount + (r.gradesCount ? " (ср. " + r.avg + ")" : "") + '</span></div>';
+
+  // Открываем модалку до отрисовки canvas, чтобы у него были размеры
   openModal("reportModal");
+  setTimeout(function () {
+    try { renderActivityChart(); } catch (e) { logWarn("Chart error:", e); }
+  }, 30);
 }
+
+/* ============================================================
+   Достижения
+   ============================================================ */
+
+function openBadgesModal() {
+  renderBadgesModal();
+  openModal("badgesModal");
+}
+
+/* ============================================================
+   Вспомогательные UI
+   ============================================================ */
 
 var toastTimer = null;
 function showToast(msg, kind) {
@@ -704,7 +718,6 @@ function updateGradeHint(sub) {
   else h.innerHTML = '10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>6 → 0 · <strong>4, 5 → −5 баллов</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
 }
 
-/* Подсказка о награде для ребёнка (в модалке «Предложить оценку») */
 function updateSuggestGradeHint(sub) {
   var h = document.getElementById("suggestGradeHint");
   if (!h) return;

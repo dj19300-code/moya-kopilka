@@ -11,8 +11,10 @@ var DEBUG = false;
 var STORAGE_KEY = "familyBalanceV44";
 var THEME_KEY = "familyBalanceTheme";
 
+// Hanko — API URL (из панели cloud.hanko.io → Dashboard → API URL)
+var HANKO_API_URL = "https://91600457-e67b-4236-8bcd-e1232ba6b85d.hanko.io";
+
 // Игровая механика
-var PARENT_PASSWORD = "1234";
 var EXCHANGE_RATE = 5;
 var HISTORY_LIMIT = 5;
 var GRADES_LIMIT = 3;
@@ -86,15 +88,11 @@ var KNOWN_SUBJECTS = ["Математика","Русский язык","Бело
 
 /* ============================================================
    Достижения (бейджи).
-
-   check(d, since) — d это текущие data, since это data.badgesResetAt.
-   Если since === 0 — учитываем все события.
-   Если since > 0 — только события с ts/approvedAt > since.
    ============================================================ */
 
 function _after(ts, since) {
-  if (!since) return true;      // до сброса — все события идут в зачёт
-  return (ts || 0) > since;     // после сброса — только новые
+  if (!since) return true;
+  return (ts || 0) > since;
 }
 
 var BADGES = [

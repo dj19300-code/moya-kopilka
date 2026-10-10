@@ -10,9 +10,8 @@ function openModal(id) {
   var modal = document.getElementById(id);
   if (!modal) return;
   modal.classList.remove("hidden");
-  var first = modal.querySelector("input[type=text]:not([type=hidden]), input[type=number]:not([type=hidden]), input[type=password]:not([type=hidden])");
-  if (first) setTimeout(function () { first.focus(); }, 100);
 }
+
 function closeModal() {
   $("#modalBackdrop").classList.add("hidden");
   $$(".modal").forEach(function (m) { m.classList.add("hidden"); });
@@ -167,6 +166,7 @@ function enterCabinet(role) {
   render();
   if (role === "child") setTimeout(checkDailyTreasure, 800);
 }
+
 function returnToStart() {
   currentRole = "";
   closeModal();
@@ -178,6 +178,7 @@ function returnToStart() {
   window.scrollTo(0, 0);
   paintStartScreen();
 }
+
 function updateRoleVisibility() {
   var isParent = currentRole === "parent";
   $$(".parent-only").forEach(function (el) { el.classList.toggle("role-hidden", !isParent); });
@@ -710,6 +711,18 @@ function initSearch() {
   }
 }
 
+function openParentAuthModal() {
+  var container = document.getElementById("hankoAuthContainer");
+  if (!container) return;
+  container.innerHTML = "";
+
+  var hankoAuth = document.createElement("hanko-auth");
+  hankoAuth.setAttribute("lang", "ru");
+  container.appendChild(hankoAuth);
+
+  openModal("passwordModal");
+}
+
 function bindEvents() {
   var childBtn = document.getElementById("childLogin");
   if (childBtn) childBtn.addEventListener("click", function (e) { e.preventDefault(); enterCabinet("child"); });
@@ -718,18 +731,7 @@ function bindEvents() {
   if (parentBtn) {
     parentBtn.addEventListener("click", function (e) {
       e.preventDefault();
-      document.getElementById("passwordForm").reset();
-      openModal("passwordModal");
-    });
-  }
-
-  var passForm = document.getElementById("passwordForm");
-  if (passForm) {
-    passForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var inp = document.getElementById("passwordInput");
-      if (inp.value === PARENT_PASSWORD) { closeModal(); enterCabinet("parent"); }
-      else { showToast("Неверный пароль"); inp.value = ""; inp.focus(); }
+      openParentAuthModal();
     });
   }
 

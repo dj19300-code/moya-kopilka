@@ -48,7 +48,7 @@
       <button class="role-card role-card--parent" id="parentLogin" type="button">
         <div class="role-card__icon">👨‍👩‍👧</div>
         <strong>Кабинет родителя</strong>
-        <small>Настройки и проверка</small>
+        <small>Вход по Face ID / отпечатку</small>
       </button>
     </div>
 
@@ -370,7 +370,7 @@
     </form>
   </div>
 
-  <div class="modal hidden" id="notificationsModal">
+      <div class="modal hidden" id="notificationsModal">
     <h3>🔔 Уведомления</h3>
     <div class="list" id="notificationsList"></div>
     <div class="modal-actions">
@@ -679,19 +679,39 @@
 
   <div class="modal hidden" id="passwordModal">
     <h3>Вход для родителя</h3>
-    <form id="passwordForm">
-      <label>Пароль<input id="passwordInput" type="password" required autocomplete="off"></label>
-      <div class="modal-actions">
-        <button class="button button--light" type="button" data-close-modal>Отмена</button>
-        <button class="button button--primary" type="submit">Войти</button>
-      </div>
-    </form>
+    <p class="modal-hint" style="margin:-8px 0 14px 0">Войдите по Face ID или отпечатку пальца.</p>
+    <div id="hankoAuthContainer"></div>
+    <div class="modal-actions">
+      <button class="button button--light" type="button" data-close-modal>Отмена</button>
+    </div>
   </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<!-- Hanko Elements: <hanko-auth> веб-компонент -->
+<script type="module">
+  import { register } from "https://esm.run/@teamhanko/hanko-elements";
+
+  // Register Hanko components with our API URL
+  const { hanko } = await register(HANKO_API_URL);
+
+  // После успешного входа родителя — входим в кабинет
+  hanko.onSessionCreated(() => {
+    closeModal();
+    enterCabinet("parent");
+  });
+
+  // Если сессия уже была (например, зашёл ранее) — тоже пускаем
+  if (await hanko.validateSession().catch(() => null)) {
+    // Не входим автоматически, ждём нажатия "Кабинет родителя"
+  }
+
+  window.__hanko = hanko;
+</script>
+
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/icons.js"></script>

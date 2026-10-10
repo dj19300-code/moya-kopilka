@@ -1,11 +1,23 @@
 "use strict";
 
 /* ============================================================
-   Утилиты: DOM, даты, строки, падежи, темы
+   Утилиты: DOM, даты, строки, падежи, темы, отладка
    ============================================================ */
 
 function $(s) { return document.querySelector(s); }
 function $$(s) { return document.querySelectorAll(s); }
+
+/* Отладочные логи — включаются флагом DEBUG в config.js */
+function log() {
+  if (typeof DEBUG !== "undefined" && DEBUG) {
+    try { console.log.apply(console, arguments); } catch (e) {}
+  }
+}
+function logWarn() {
+  if (typeof DEBUG !== "undefined" && DEBUG) {
+    try { console.warn.apply(console, arguments); } catch (e) {}
+  }
+}
 
 function formatDate(d) {
   var m = String(d.getMonth() + 1).padStart(2, "0");
@@ -43,7 +55,17 @@ function escapeHtml(v) {
 
 function toInt(v) { var n = Number(v); return Number.isFinite(n) ? Math.trunc(n) : NaN; }
 function isNonNegativeInt(v) { return Number.isInteger(v) && v >= 0; }
-function uniqueId() { return Date.now() * 1000 + Math.floor(Math.random() * 1000); }
+
+/* Уникальный ID. crypto.randomUUID доступен в современных браузерах
+   и в защищённом контексте (https/localhost). Есть фолбэк. */
+function uniqueId() {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch (e) {}
+  return "id_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+}
 
 function pluralPoints(n) {
   var m10 = Math.abs(n) % 10, m100 = Math.abs(n) % 100;
@@ -123,7 +145,7 @@ function toArray(v) {
 
 var localStore = {
   get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  set: function (k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { console.warn("localStorage full?"); return false; } },
+  set: function (k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { logWarn("localStorage full?"); return false; } },
   remove: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
 

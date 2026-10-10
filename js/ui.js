@@ -828,6 +828,7 @@ function bindEvents() {
       document.getElementById("suggestGradeForm").reset();
       document.getElementById("suggestSubjectSelect").value = "Математика";
       document.getElementById("suggestCustomSubjectWrapper").classList.add("hidden");
+      updateSuggestGradeHint("Математика");
       return openModal("suggestGradeModal");
     }
     if (id === "exportButton") {
@@ -945,6 +946,7 @@ function bindEvents() {
       var w = document.getElementById("suggestCustomSubjectWrapper");
       if (e.target.value === "__custom__") w.classList.remove("hidden");
       else w.classList.add("hidden");
+      updateSuggestGradeHint(e.target.value);
     });
   }
   var elPhoto = document.getElementById("photoFileInput");
@@ -1049,33 +1051,78 @@ function bindEvents() {
       if (!sub) return showToast("Выберите предмет");
       if (!Number.isInteger(v) || v < 2 || v > 10) return showToast("Оценка 2–10");
       var newPay = paymentForGrade(v, sub);
-      var newPenalty = penaltyPointsForGrade(v);
+      var newPenaltyTheoretical = penaltyPointsForGrade(v);
+
       if (editId) {
         var g = data.grades.find(function (x) { return x.id === editId; });
         if (!g) { closeModal(); return showToast("Не найдена"); }
-        var oldPenalty = penaltyPointsForGrade(g.value);
-        var diff = newPay - g.payment;
-        var penaltyDiff = newPenalty - oldPenalty;
-        g.subject = sub; g.value = v; g.payment = newPay;
+        var oldPenalty = g.penalty || 0;
+        var diff = newPay - (g.payment || 0);
+
+        // Отменяем старый штраф — возвращаем ровно то, что было списано
+        if (oldPenalty < 0) {
+          addTransaction("Отмена штрафа за оценку: " + g.subject, {
+            points: -oldPenalty,
+            affectLevel: true
+          });
+        }
+
+        // Считаем новый штраф с учётом текущих баллов
+        var newPenaltyActual = 0;
+        if (newPenaltyTheoretical < 0) {
+          newPenaltyActual = -Math.min(Math.abs(newPenaltyTheoretical), Math.max(0, data.points));
+        }
+
+        g.subject = sub;
+        g.value = v;
+        g.payment = newPay;
+        g.penalty = newPenaltyActual;
+
         if (diff) addTransaction("Изменение оценки: " + sub, { byn: diff });
-        if (penaltyDiff) addTransaction("Изменение штрафа за оценку: " + sub, { points: penaltyDiff, affectLevel: true });
+        if (newPenaltyActual) {
+          addTransaction("Штраф за оценку " + v + ": " + sub, {
+            points: newPenaltyActual,
+            affectLevel: true,
+            capAtZero: true
+          });
+        }
+
         closeModal();
         saveData();
-        if (penaltyDiff) { checkLevelUp(); checkGoalsReady(); }
+        if (newPenaltyActual || oldPenalty) { checkLevelUp(); checkGoalsReady(); }
+
         if (diff > 0) showToast("+" + diff + " BYN", "success");
         else if (diff < 0) showToast("−" + Math.abs(diff) + " BYN");
-        else if (penaltyDiff) showToast((penaltyDiff > 0 ? "+" : "−") + Math.abs(penaltyDiff) + " " + pluralPoints(Math.abs(penaltyDiff)));
+        else if (newPenaltyActual) showToast("Штраф " + Math.abs(newPenaltyActual) + " " + pluralPoints(Math.abs(newPenaltyActual)));
         else showToast("Обновлено");
       } else {
-        data.grades.unshift({ id: uniqueId(), subject: sub, value: v, payment: newPay, date: today() });
+        var newPenaltyActual2 = 0;
+        if (newPenaltyTheoretical < 0) {
+          newPenaltyActual2 = -Math.min(Math.abs(newPenaltyTheoretical), Math.max(0, data.points));
+        }
+        data.grades.unshift({
+          id: uniqueId(),
+          subject: sub,
+          value: v,
+          payment: newPay,
+          penalty: newPenaltyActual2,
+          date: today()
+        });
         if (newPay) addTransaction("Оценка " + v + ": " + sub, { byn: newPay });
-        if (newPenalty) addTransaction("Штраф за оценку " + v + ": " + sub, { points: newPenalty, affectLevel: true });
+        if (newPenaltyActual2) {
+          addTransaction("Штраф за оценку " + v + ": " + sub, {
+            points: newPenaltyActual2,
+            affectLevel: true,
+            capAtZero: true
+          });
+        }
         closeModal();
         saveData();
-        if (newPenalty) { checkLevelUp(); checkGoalsReady(); }
+        if (newPenaltyActual2) { checkLevelUp(); checkGoalsReady(); }
         if (newPay > 0) showToast("Начислено " + newPay + " BYN", "success");
         else if (newPay < 0) showToast("Штраф " + Math.abs(newPay) + " BYN");
-        else if (newPenalty) showToast("Штраф " + Math.abs(newPenalty) + " " + pluralPoints(Math.abs(newPenalty)));
+        else if (newPenaltyActual2) showToast("Штраф " + Math.abs(newPenaltyActual2) + " " + pluralPoints(Math.abs(newPenaltyActual2)));
+        else if (newPenaltyTheoretical) showToast("Штраф не списан — на счету пусто");
         else showToast("Оценка добавлена");
       }
     });

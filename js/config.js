@@ -4,6 +4,9 @@
    Моя копилка — конфигурация и константы
    ============================================================ */
 
+// Отладка: true — показывать логи в консоли браузера, false — тишина
+var DEBUG = false;
+
 // Локальное хранилище
 var STORAGE_KEY = "familyBalanceV44";
 var THEME_KEY = "familyBalanceTheme";
@@ -31,7 +34,6 @@ var SCROLL_TOP_THRESHOLD = 400;
 var FAMILY_ID = "moya-kopilka-7k3m9p2x8q10DenL";
 
 var firebaseConfig = {
-  // ⚠️ ВСТАВЬ СЮДА СВОЙ НОВЫЙ КЛЮЧ (тот, что создал в Cloud Console)
   apiKey: "AIzaSyBnIaSEK1fIiL8U709XOjwAPoTPdxQ_3Hc",
   authDomain: "family-balance-2fc27.firebaseapp.com",
   databaseURL: "https://family-balance-2fc27-default-rtdb.europe-west1.firebasedatabase.app",

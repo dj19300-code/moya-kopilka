@@ -553,6 +553,10 @@
         <input id="suggestSubjectCustom" type="text" placeholder="Например: Музыка">
       </label>
       <label>Оценка (2–10)<input id="suggestValue" type="number" min="2" max="10" step="1" inputmode="numeric" required></label>
+      <p class="modal-hint" id="suggestGradeHint">
+        10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>
+        6 → 0 BYN · <strong>4, 5 → −5 баллов</strong> · <strong>1, 2, 3 → −2 BYN</strong>
+      </p>
       <p class="modal-hint">Родитель проверит и подтвердит.</p>
       <div class="modal-actions">
         <button class="button button--light" type="button" data-close-modal>Отмена</button>
@@ -684,8 +688,8 @@
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
       navigator.serviceWorker.register("./service-worker.js")
-        .then(function (reg) { console.log("SW зарегистрирован:", reg.scope); })
-        .catch(function (err) { console.warn("SW не зарегистрирован:", err); });
+        .then(function (reg) { log("SW зарегистрирован:", reg.scope); })
+        .catch(function (err) { logWarn("SW не зарегистрирован:", err); });
     });
   }
 </script>

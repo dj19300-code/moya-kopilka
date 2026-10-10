@@ -9,21 +9,47 @@ function approveGrade(id) {
   if (!r) return;
   var p = paymentForGrade(r.value, r.subject);
   var penalty = penaltyPointsForGrade(r.value);
+
+  // Считаем, сколько штрафа реально спишется (не ниже нуля)
+  var actualPenalty = 0;
+  if (penalty < 0) {
+    actualPenalty = -Math.min(Math.abs(penalty), Math.max(0, data.points));
+  }
+
   data.gradeRequests = data.gradeRequests.filter(function (x) { return x.id !== id; });
-  data.grades.unshift({ id: r.id, subject: r.subject, value: r.value, date: r.date, payment: p });
+  data.grades.unshift({
+    id: r.id,
+    subject: r.subject,
+    value: r.value,
+    date: r.date,
+    payment: p,
+    penalty: actualPenalty
+  });
+
   if (p) addTransaction("Оценка " + r.value + ": " + r.subject, { byn: p });
-  if (penalty) addTransaction("Штраф за оценку " + r.value + ": " + r.subject, { points: penalty, affectLevel: true });
+  if (actualPenalty) {
+    addTransaction("Штраф за оценку " + r.value + ": " + r.subject, {
+      points: actualPenalty,
+      affectLevel: true,
+      capAtZero: true
+    });
+  }
+
   var s = "";
   if (p > 0) s = " · +" + p + " BYN";
   else if (p < 0) s = " · " + p + " BYN";
-  if (penalty) s += " · " + (penalty > 0 ? "+" : "−") + Math.abs(penalty) + " " + pluralPoints(Math.abs(penalty));
+  if (actualPenalty) s += " · " + actualPenalty + " " + pluralPoints(Math.abs(actualPenalty));
+
   addNotification("child", "Оценка «" + r.subject + " — " + r.value + "» подтверждена" + s, "🎓");
   saveData();
+
   if (p > 0) showToast("Начислено " + p + " BYN", "success");
   else if (p < 0) showToast("Штраф " + Math.abs(p) + " BYN");
-  else if (penalty) showToast("Штраф " + Math.abs(penalty) + " " + pluralPoints(Math.abs(penalty)));
+  else if (actualPenalty) showToast("Штраф " + Math.abs(actualPenalty) + " " + pluralPoints(Math.abs(actualPenalty)));
+  else if (penalty) showToast("Штраф не списан — на счету пусто");
   else showToast("Оценка подтверждена");
-  if (penalty) { checkLevelUp(); checkGoalsReady(); }
+
+  if (actualPenalty) { checkLevelUp(); checkGoalsReady(); }
 }
 
 function rejectGrade(id) {
@@ -39,12 +65,25 @@ function deleteGrade(id) {
   if (idx === -1) return;
   var g = data.grades[idx];
   if (!confirm('Удалить оценку «' + g.subject + " — " + g.value + '»?')) return;
+
   if (g.payment) addTransaction("Отмена оценки: " + g.subject, { byn: -g.payment });
-  var penalty = penaltyPointsForGrade(g.value);
-  if (penalty) addTransaction("Отмена штрафа за оценку: " + g.subject, { points: -penalty, affectLevel: true });
+
+  // Возвращаем ровно тот штраф, который был списан (g.penalty), а не теоретический
+  var refundPenalty = g.penalty || 0;
+  if (!refundPenalty && penaltyPointsForGrade(g.value) < 0) {
+    // На случай старых записей без поля penalty — считаем, что списания не было
+    refundPenalty = 0;
+  }
+  if (refundPenalty) {
+    addTransaction("Отмена штрафа за оценку: " + g.subject, {
+      points: -refundPenalty,
+      affectLevel: true
+    });
+  }
+
   data.grades.splice(idx, 1);
   saveData();
-  if (penalty) { checkLevelUp(); checkGoalsReady(); }
+  if (refundPenalty) { checkLevelUp(); checkGoalsReady(); }
   showToast("Оценка удалена");
 }
 
@@ -380,7 +419,7 @@ function submitBalanceManage() {
       (sign > 0 ? "🎁 Начислено " + amount + " BYN: " + reason : "💸 Списано " + amount + " BYN: " + reason),
       sign > 0 ? "🎁" : "💸");
   } else {
-    addTransaction((sign > 0 ? "🎁 " : "⚠️ ") + reason, { points: delta });
+    addTransaction((sign > 0 ? "🎁 " : "⚠️ ") + reason, { points: delta, capAtZero: true });
     if (sign > 0) checkLevelUp();
     checkGoalsReady();
     addNotification("child",
@@ -660,6 +699,14 @@ function getSubjectValue(sel, cus) {
 }
 function updateGradeHint(sub) {
   var h = document.getElementById("gradeHint");
+  if (!h) return;
+  if (isMath(sub)) h.innerHTML = '<strong>Математика:</strong><br>10, 9 → <strong>+5 BYN</strong> · 8 → <strong>+4 BYN</strong> · 7 → <strong>+2 BYN</strong><br>6 → 0 · <strong>4, 5 → −5 баллов</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
+  else h.innerHTML = '10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>6 → 0 · <strong>4, 5 → −5 баллов</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
+}
+
+/* Подсказка о награде для ребёнка (в модалке «Предложить оценку») */
+function updateSuggestGradeHint(sub) {
+  var h = document.getElementById("suggestGradeHint");
   if (!h) return;
   if (isMath(sub)) h.innerHTML = '<strong>Математика:</strong><br>10, 9 → <strong>+5 BYN</strong> · 8 → <strong>+4 BYN</strong> · 7 → <strong>+2 BYN</strong><br>6 → 0 · <strong>4, 5 → −5 баллов</strong> · <strong>1, 2, 3 → −2 BYN</strong>';
   else h.innerHTML = '10 → <strong>+3 BYN</strong> · 9 → <strong>+2 BYN</strong> · 7, 8 → <strong>+1 BYN</strong><br>6 → 0 · <strong>4, 5 → −5 баллов</strong> · <strong>1, 2, 3 → −2 BYN</strong>';

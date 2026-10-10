@@ -72,6 +72,7 @@ function normalize(raw) {
         subject: String(g.subject || "").trim() || "Предмет",
         value: Math.min(10, Math.max(2, toInt(g.value) || 0)),
         payment: num(g.payment),
+        penalty: num(g.penalty),
         date: String(g.date || today())
       };
     }),
@@ -150,8 +151,7 @@ try {
     var db = firebase.database();
 
     if (!firebase.auth || typeof firebase.auth !== "function") {
-      // Auth SDK не загрузился — работаем только офлайн
-      console.warn("Firebase Auth недоступен — офлайн-режим");
+      logWarn("Firebase Auth недоступен — офлайн-режим");
       firebaseReady = false;
       setSyncStatus("offline", "Офлайн · авторизация недоступна");
       updateSyncLine("offline");
@@ -159,7 +159,7 @@ try {
     } else {
       firebase.auth().signInAnonymously()
         .then(function () {
-          console.log("Анонимный вход выполнен");
+          log("Анонимный вход выполнен");
           firebaseRef = db.ref("families/" + FAMILY_ID);
           firebaseReady = true;
 
@@ -172,9 +172,8 @@ try {
                 try { localStr = JSON.stringify(data); } catch (e) { localStr = ""; }
                 try { syncStr = JSON.stringify(lastSyncedData); } catch (e) { syncStr = ""; }
                 if (localStr !== syncStr) {
-                  console.warn("Пропускаю серверное обновление — есть несинхронизированные локальные изменения");
+                  logWarn("Пропускаю серверное обновление — есть несинхронизированные локальные изменения");
                   setSyncStatus("online", "");
-                  // Всё равно проверим новые заявки для пуша
                   if (typeof checkNewPendingForPush === "function") {
                     checkNewPendingForPush(normalize(raw));
                   }
@@ -210,7 +209,7 @@ try {
           });
         })
         .catch(function (error) {
-          console.error("Ошибка анонимного входа:", error);
+          logWarn("Ошибка анонимного входа:", error);
           setSyncStatus("error", "Не удалось авторизоваться");
           updateSyncLine("error");
           paintStartScreen();
@@ -218,11 +217,11 @@ try {
         });
     }
   } else {
-    console.warn("Firebase не загружен — офлайн");
+    logWarn("Firebase не загружен — офлайн");
     paintStartScreen();
   }
 } catch (err) {
-  console.error("Firebase error:", err);
+  logWarn("Firebase error:", err);
   paintStartScreen();
 }
 
@@ -479,16 +478,42 @@ function checkDailyTreasure() {
   }
 }
 
+/* addTransaction — центральная функция начисления/списания.
+   Опции:
+     byn       — изменение баланса (может быть отрицательным)
+     points    — изменение баллов (может быть отрицательным)
+     affectLevel — если true и points < 0, списание уменьшает totalEarnedPoints
+     capAtZero — если true, списание не уводит balance/points/totalEarnedPoints ниже нуля
+*/
 function addTransaction(d, opts) {
   opts = opts || {};
   var byn = opts.byn || 0;
   var points = opts.points || 0;
   if (!byn && !points) return;
+
+  if (opts.capAtZero) {
+    if (byn < 0) {
+      var maxByn = -Math.max(0, data.balance);
+      if (byn < maxByn) byn = maxByn;
+    }
+    if (points < 0) {
+      var maxPoints = -Math.max(0, data.points);
+      if (points < maxPoints) points = maxPoints;
+    }
+  }
+
+  if (!byn && !points) return;
+
   data.transactions.unshift({ description: d, byn: byn, points: points, date: today() });
   data.balance += byn;
   data.points += points;
   if (points > 0) data.totalEarnedPoints += points;
-  if (points < 0 && opts.affectLevel) data.totalEarnedPoints += points;
+  if (points < 0 && opts.affectLevel) {
+    data.totalEarnedPoints += points;
+    if (data.totalEarnedPoints < 0) data.totalEarnedPoints = 0;
+  }
+  if (data.balance < 0) data.balance = 0;
+  if (data.points < 0) data.points = 0;
 }
 
 function cleanupOrphanCompletions() {

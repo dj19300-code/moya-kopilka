@@ -1,7 +1,7 @@
 "use strict";
 
 // Меняй версию, когда хочешь принудительно обновить кэш
-var CACHE_NAME = "moya-kopilka-v7";
+var CACHE_NAME = "moya-kopilka-v8";
 
 var URLS_TO_CACHE = [
   "./",

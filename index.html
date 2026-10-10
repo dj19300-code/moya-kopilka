@@ -655,6 +655,7 @@
       <button class="button button--light" id="resetLevelButton" type="button">⬇ Сбросить уровень</button>
       <button class="button button--light" id="editLevelButton" type="button">✏️ Установить баллы уровня</button>
       <button class="button button--light" id="resetBadgesButton" type="button">🏆 Сбросить достижения и стрик</button>
+      <button class="button button--light" id="logoutParentButton" type="button">🚪 Выйти из кабинета родителя</button>
       <button class="button button--danger" id="resetAllButton" type="button">🗑 Полный сброс</button>
     </div>
     <input type="file" id="importFileInput" accept="application/json,.json" class="hidden">
@@ -690,28 +691,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-
-<!-- Hanko Elements: <hanko-auth> веб-компонент -->
-<script type="module">
-  import { register } from "https://esm.run/@teamhanko/hanko-elements";
-
-  // Register Hanko components with our API URL
-  const { hanko } = await register(HANKO_API_URL);
-
-  // После успешного входа родителя — входим в кабинет
-  hanko.onSessionCreated(() => {
-    closeModal();
-    enterCabinet("parent");
-  });
-
-  // Если сессия уже была (например, зашёл ранее) — тоже пускаем
-  if (await hanko.validateSession().catch(() => null)) {
-    // Не входим автоматически, ждём нажатия "Кабинет родителя"
-  }
-
-  window.__hanko = hanko;
-</script>
-
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/icons.js"></script>
@@ -720,6 +699,7 @@
 <script src="js/render.js"></script>
 <script src="js/actions.js"></script>
 <script src="js/ui.js"></script>
+<script type="module" src="js/hanko.js"></script>
 <script src="js/app.js"></script>
 <script>
   if ("serviceWorker" in navigator) {

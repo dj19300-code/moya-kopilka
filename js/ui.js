@@ -445,9 +445,7 @@ function initHotkeys() {
 
     if (key === "1") { e.preventDefault(); returnToStart(); setTimeout(function () { enterCabinet("child"); }, 100); return; }
     if (key === "2") { e.preventDefault(); returnToStart(); setTimeout(function () {
-      var inp = document.getElementById("passwordInput");
-      openModal("passwordModal");
-      if (inp) setTimeout(function () { inp.focus(); }, 150);
+      openParentAuthModal();
     }, 100); return; }
 
     if (key === "n" && currentRole === "parent") {
@@ -712,15 +710,29 @@ function initSearch() {
 }
 
 function openParentAuthModal() {
-  var container = document.getElementById("hankoAuthContainer");
-  if (!container) return;
-  container.innerHTML = "";
-
-  var hankoAuth = document.createElement("hanko-auth");
-  hankoAuth.setAttribute("lang", "ru");
-  container.appendChild(hankoAuth);
-
   openModal("passwordModal");
+  if (typeof window.showHankoAuth === "function") {
+    window.showHankoAuth();
+  } else {
+    var container = document.getElementById("hankoAuthContainer");
+    if (container) {
+      container.innerHTML = '<p class="modal-hint">Hanko загружается… Попробуйте через пару секунд.</p>';
+    }
+  }
+}
+
+function logoutParent() {
+  if (!confirm("Выйти из кабинета родителя?")) return;
+  if (window.__hanko && typeof window.__hanko.logout === "function") {
+    window.__hanko.logout().then(function () {
+      returnToStart();
+      showToast("Вы вышли");
+    }).catch(function () {
+      returnToStart();
+    });
+  } else {
+    returnToStart();
+  }
 }
 
 function bindEvents() {
@@ -767,7 +779,7 @@ function bindEvents() {
     var bulkBtn = e.target.closest("[data-bulk]");
     if (bulkBtn) { e.preventDefault(); handleBulkAction(bulkBtn.dataset.bulk); return; }
 
-    var btn = e.target.closest("[data-action], #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #resetBadgesButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, [data-close-modal]");
+    var btn = e.target.closest("[data-action], #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #resetBadgesButton, #logoutParentButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, [data-close-modal]");
     if (!btn) return;
 
     var id = btn.id;
@@ -799,6 +811,7 @@ function bindEvents() {
     if (id === "clearHistoryButton") return clearHistoryOnly();
     if (id === "resetLevelButton") return resetLevelOnly();
     if (id === "resetBadgesButton") return resetBadges();
+    if (id === "logoutParentButton") return logoutParent();
     if (id === "editLevelButton") {
       document.getElementById("levelEditValue").value = data.totalEarnedPoints;
       return openModal("levelEditModal");

@@ -88,9 +88,12 @@ function handlePhotoFileChange(e) {
 
 function removePendingPhoto() {
   pendingPhotoDataUrl = "";
-  document.getElementById("photoFileInput").value = "";
-  document.getElementById("photoPreviewWrap").classList.add("hidden");
-  document.getElementById("photoPreview").removeAttribute("src");
+  var fi = document.getElementById("photoFileInput");
+  if (fi) fi.value = "";
+  var wrap = document.getElementById("photoPreviewWrap");
+  if (wrap) wrap.classList.add("hidden");
+  var prev = document.getElementById("photoPreview");
+  if (prev) prev.removeAttribute("src");
 }
 
 function openCommentModal(id, mode) {
@@ -132,14 +135,6 @@ function openEditGrade(id) {
   document.getElementById("gradeModalTitle").textContent = "Редактировать оценку";
   updateGradeHint(g.subject);
   openModal("gradeModal");
-}
-
-function openWithdrawRequestModal() {
-  document.getElementById("withdrawRequestForm").reset();
-  document.getElementById("withdrawBalanceLabel").textContent = data.balance + " BYN";
-  var amtEl = document.getElementById("withdrawAmount");
-  amtEl.max = Math.max(1, data.balance);
-  openModal("withdrawRequestModal");
 }
 
 function openBalanceManageModal(prefill) {
@@ -761,7 +756,7 @@ function bindEvents() {
     var bulkBtn = e.target.closest("[data-bulk]");
     if (bulkBtn) { e.preventDefault(); handleBulkAction(bulkBtn.dataset.bulk); return; }
 
-    var btn = e.target.closest("[data-action], #exchangeButton, #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, #requestWithdrawButton, [data-close-modal]");
+    var btn = e.target.closest("[data-action], #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, [data-close-modal]");
     if (!btn) return;
 
     var id = btn.id;
@@ -796,8 +791,6 @@ function bindEvents() {
       return openModal("levelEditModal");
     }
     if (id === "resetAllButton") return resetEverything();
-    if (id === "exchangeButton") return exchangePoints();
-    if (id === "requestWithdrawButton") return openWithdrawRequestModal();
     if (id === "openBalanceManage") return openBalanceManageModal();
 
     if (id === "openChoreModal") {
@@ -897,7 +890,7 @@ function bindEvents() {
     }
   });
 
-    document.addEventListener("change", function (e) {
+  document.addEventListener("change", function (e) {
     if (e.target.id === "pushEnabledSwitch") {
       if (typeof togglePushSwitch === "function") togglePushSwitch(e.target.checked);
       return;
@@ -956,6 +949,9 @@ function bindEvents() {
   }
   var elPhoto = document.getElementById("photoFileInput");
   if (elPhoto) elPhoto.addEventListener("change", handlePhotoFileChange);
+
+  var elPhotoRemove = document.getElementById("photoRemoveBtn");
+  if (elPhotoRemove) elPhotoRemove.addEventListener("click", removePendingPhoto);
 
   var elImport = document.getElementById("importFileInput");
   if (elImport) {

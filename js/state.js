@@ -149,65 +149,74 @@ try {
     firebase.initializeApp(firebaseConfig);
     var db = firebase.database();
 
-    firebase.auth().signInAnonymously()
-      .then(function () {
-        console.log("Анонимный вход выполнен");
-        firebaseRef = db.ref("families/" + FAMILY_ID);
-        firebaseReady = true;
+    if (!firebase.auth || typeof firebase.auth !== "function") {
+      // Auth SDK не загрузился — работаем только офлайн
+      console.warn("Firebase Auth недоступен — офлайн-режим");
+      firebaseReady = false;
+      setSyncStatus("offline", "Офлайн · авторизация недоступна");
+      updateSyncLine("offline");
+      paintStartScreen();
+    } else {
+      firebase.auth().signInAnonymously()
+        .then(function () {
+          console.log("Анонимный вход выполнен");
+          firebaseRef = db.ref("families/" + FAMILY_ID);
+          firebaseReady = true;
 
-        firebaseRef.on("value", function (snap) {
-          var raw = snap.val();
-          if (raw) {
-            // Защита от гонки: если есть локальные изменения, ещё не улетевшие в Firebase — не затираем
-            if (lastSyncedData) {
-              var localStr, syncStr;
-              try { localStr = JSON.stringify(data); } catch (e) { localStr = ""; }
-              try { syncStr = JSON.stringify(lastSyncedData); } catch (e) { syncStr = ""; }
-              if (localStr !== syncStr) {
-                console.warn("Пропускаю серверное обновление — есть несинхронизированные локальные изменения");
-                setSyncStatus("online", "");
-                // Всё равно проверим новые заявки для пуша
-                if (typeof checkNewPendingForPush === "function") {
-                  checkNewPendingForPush(normalize(raw));
+          firebaseRef.on("value", function (snap) {
+            var raw = snap.val();
+            if (raw) {
+              // Защита от гонки: если есть локальные изменения, ещё не улетевшие в Firebase — не затираем
+              if (lastSyncedData) {
+                var localStr, syncStr;
+                try { localStr = JSON.stringify(data); } catch (e) { localStr = ""; }
+                try { syncStr = JSON.stringify(lastSyncedData); } catch (e) { syncStr = ""; }
+                if (localStr !== syncStr) {
+                  console.warn("Пропускаю серверное обновление — есть несинхронизированные локальные изменения");
+                  setSyncStatus("online", "");
+                  // Всё равно проверим новые заявки для пуша
+                  if (typeof checkNewPendingForPush === "function") {
+                    checkNewPendingForPush(normalize(raw));
+                  }
+                  return;
                 }
-                return;
               }
+              data = normalize(raw);
+              if (typeof checkNewPendingForPush === "function") {
+                checkNewPendingForPush(data);
+              }
+            } else {
+              data = createInitialData();
+              firebaseRef.set(data);
             }
-            data = normalize(raw);
-            if (typeof checkNewPendingForPush === "function") {
-              checkNewPendingForPush(data);
+            lastSyncedData = JSON.parse(JSON.stringify(data));
+            try {
+              localStore.set(STORAGE_KEY, JSON.stringify(stripPhotos(data)));
+            } catch (e) {}
+            if (cleanupOrphanCompletions()) {
+              lastSyncedData = null;
+              saveData();
+              return;
             }
-          } else {
-            data = createInitialData();
-            firebaseRef.set(data);
-          }
-          lastSyncedData = JSON.parse(JSON.stringify(data));
-          try {
-            localStore.set(STORAGE_KEY, JSON.stringify(stripPhotos(data)));
-          } catch (e) {}
-          if (cleanupOrphanCompletions()) {
-            lastSyncedData = null;
-            saveData();
-            return;
-          }
-          setSyncStatus("online", "");
-          updateSyncLine("online");
-          paintStartScreen();
-          render();
-        }, function () {
-          setSyncStatus("offline", "Офлайн · изменения сохранятся позже");
-          updateSyncLine("offline");
+            setSyncStatus("online", "");
+            updateSyncLine("online");
+            paintStartScreen();
+            render();
+          }, function () {
+            setSyncStatus("offline", "Офлайн · изменения сохранятся позже");
+            updateSyncLine("offline");
+            paintStartScreen();
+            render();
+          });
+        })
+        .catch(function (error) {
+          console.error("Ошибка анонимного входа:", error);
+          setSyncStatus("error", "Не удалось авторизоваться");
+          updateSyncLine("error");
           paintStartScreen();
           render();
         });
-      })
-      .catch(function (error) {
-        console.error("Ошибка анонимного входа:", error);
-        setSyncStatus("error", "Не удалось авторизоваться");
-        updateSyncLine("error");
-        paintStartScreen();
-        render();
-      });
+    }
   } else {
     console.warn("Firebase не загружен — офлайн");
     paintStartScreen();

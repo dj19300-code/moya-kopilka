@@ -2949,4 +2949,4 @@ document.addEventListener("visibilitychange", function () {
     checkDayChange();
     paintStartScreen();
   }
-});/0
+});

@@ -1,7 +1,7 @@
 "use strict";
 
 /* ============================================================
-   Действия: проверка, оценки, цели, обмен, баланс
+   Действия: проверка, оценки, цели, баланс
    ============================================================ */
 
 function approveGrade(id) {
@@ -148,26 +148,6 @@ function deleteGoal(i) {
   data.goals.splice(i, 1);
   saveData();
   showToast("Цель удалена");
-}
-
-function exchangePoints() {
-  var p = toInt(document.getElementById("exchangeInput").value);
-  if (!Number.isInteger(p) || p < EXCHANGE_RATE || p % EXCHANGE_RATE !== 0) return showToast("Кратное 5");
-  if (p > data.points) return showToast("Недостаточно баллов");
-  var mg = sortedGoals()[0];
-  var loss = 0;
-  if (mg) {
-    var before = Math.min(data.points, mg.price);
-    var after = Math.min(data.points - p, mg.price);
-    loss = before - after;
-  }
-  var msg = "Обменять " + p + " " + pluralPoints(p) + " на " + (p / EXCHANGE_RATE) + " BYN?";
-  if (loss > 0 && mg) msg = "Обмен уменьшит прогресс цели «" + mg.title + "» на " + loss + " " + pluralPoints(loss) + ".\n\nПродолжить?";
-  if (!confirm(msg)) return;
-  var byn = p / EXCHANGE_RATE;
-  addTransaction("Обмен " + p + " " + pluralPoints(p), { byn: byn, points: -p });
-  saveData();
-  showToast("+" + byn + " BYN · −" + p + " " + pluralPoints(p), "success");
 }
 
 function togglePendingSelection(id) {
@@ -511,6 +491,7 @@ function openWeeklyReport() {
 var toastTimer = null;
 function showToast(msg, kind) {
   var t = document.getElementById("toast");
+  if (!t) return;
   t.textContent = msg;
   t.className = "toast";
   if (kind === "success") t.classList.add("toast--success");

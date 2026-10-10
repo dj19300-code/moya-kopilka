@@ -188,10 +188,8 @@ function render() {
 
   paintSummaryDeco();
   renderStatus();
-  renderMainGoal();
   renderPendingChores();
   renderWithdrawRequests();
-  renderMyWithdrawStatus();
   renderChores(isParent);
   renderGrades(isParent);
   renderGoals(isParent);
@@ -217,27 +215,6 @@ function renderStatus() {
     document.getElementById("levelProgressBar").style.width = "100%";
     document.getElementById("levelProgressText").textContent = "Максимум достигнут 🎉";
   }
-}
-
-function renderMainGoal() {
-  var nameEl = document.getElementById("goalName");
-  if (!nameEl) return;
-  var g = sortedGoals()[0];
-  if (!g) {
-    nameEl.textContent = "Нет цели";
-    var bar = document.getElementById("goalProgressBar");
-    if (bar) bar.style.width = "0%";
-    var txt = document.getElementById("goalProgressText");
-    if (txt) txt.textContent = "Создайте цель";
-    return;
-  }
-  var pr = Math.min(data.points, g.price);
-  var p = Math.round((pr / g.price) * 100);
-  nameEl.textContent = g.title;
-  var bar2 = document.getElementById("goalProgressBar");
-  if (bar2) bar2.style.width = p + "%";
-  var txt2 = document.getElementById("goalProgressText");
-  if (txt2) txt2.textContent = pr + " из " + g.price + " " + pluralPoints(g.price) + " (" + p + "%)";
 }
 
 function sortedGoals() {
@@ -619,15 +596,6 @@ function renderWithdrawRequests() {
       : '<span class="amount-negative">✗ Отклонено</span>';
     return '<div class="list-item"><div><div class="list-item__title">' + amountLabel + '</div><div class="list-item__meta">' + reason + " · " + r.date + '</div></div><div class="list-item__actions">' + statusText + '</div></div>';
   }).join("");
-}
-
-function renderMyWithdrawStatus() {
-  var el = document.getElementById("myWithdrawStatus");
-  if (!el) return;
-  var mine = data.withdrawRequests.filter(function (r) { return r.status === "pending"; });
-  if (!mine.length) { el.innerHTML = ""; return; }
-  var r = mine[0];
-  el.innerHTML = '<div class="chore-comment">⏳ Запрос на ' + r.amount + ' BYN на проверке' + (r.reason ? ": " + escapeHtml(r.reason) : "") + '</div>';
 }
 
 function renderChoreDaysGrid() {

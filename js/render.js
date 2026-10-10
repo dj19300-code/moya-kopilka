@@ -185,7 +185,6 @@ function render() {
 
   document.getElementById("balance").textContent = data.balance + " BYN";
   document.getElementById("points").textContent = data.points;
-  document.getElementById("exchangeInfo").textContent = "Доступно: " + data.points + " " + pluralPoints(data.points);
 
   paintSummaryDeco();
   renderStatus();

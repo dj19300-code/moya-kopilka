@@ -8,6 +8,9 @@ import { register } from "https://esm.run/@teamhanko/hanko-elements";
 
 let hankoInstance = null;
 
+// Ключ для хранения email в localStorage
+const HANKO_EMAIL_KEY = "hanko_parent_email";
+
 // Регистрируем компоненты Hanko с нашим API URL
 try {
   const { hanko } = await register(HANKO_API_URL);
@@ -15,6 +18,15 @@ try {
 
   // Колбэк: пользователь успешно вошёл
   hanko.onSessionCreated(() => {
+    // Пытаемся сохранить email, если он есть в сессии
+    if (hanko.user && typeof hanko.user.getCurrent === "function") {
+      hanko.user.getCurrent().then(user => {
+        if (user && user.email) {
+          localStorage.setItem(HANKO_EMAIL_KEY, user.email);
+        }
+      }).catch(() => {});
+    }
+    
     if (typeof closeModal === "function") closeModal();
     if (typeof enterCabinet === "function") enterCabinet("parent");
   });
@@ -26,7 +38,6 @@ try {
     }
   });
 
-  // Экспортируем в window, чтобы ui.js мог использовать
   window.__hanko = hanko;
   window.__hankoReady = true;
   if (typeof log === "function") log("Hanko готов");
@@ -48,6 +59,13 @@ window.showHankoAuth = function () {
   container.innerHTML = "";
   const el = document.createElement("hanko-auth");
   el.setAttribute("lang", "ru");
+  
+  // Вставляем сохранённый email, если он есть
+  const savedEmail = localStorage.getItem(HANKO_EMAIL_KEY);
+  if (savedEmail) {
+    el.setAttribute("prefilled-email", savedEmail);
+  }
+  
   container.appendChild(el);
   return true;
 };

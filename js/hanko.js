@@ -8,6 +8,7 @@ import { register } from "https://esm.run/@teamhanko/hanko-elements";
 import { en } from "https://esm.run/@teamhanko/hanko-elements/i18n/en";
 
 const HANKO_EMAIL_KEY = "hanko_parent_email";
+const HANKO_USERID_KEY = "hanko_parent_userid";
 
 en.labels.email = "Email";
 en.labels.continue = "Продолжить";
@@ -20,11 +21,30 @@ en.headlines.signIn = "Вход для родителя";
 
 let hankoInstance = null;
 
+/* Сохраняет userId и email залогиненного пользователя */
+async function saveCurrentUser() {
+  try {
+    if (!hankoInstance || !hankoInstance.user) return;
+    var user = await hankoInstance.user.getCurrent();
+    if (user && user.id) {
+      localStorage.setItem(HANKO_USERID_KEY, user.id);
+      if (user.email) localStorage.setItem(HANKO_EMAIL_KEY, user.email);
+      if (typeof log === "function") log("Hanko user saved:", user.id);
+    }
+  } catch (e) {}
+}
+
 try {
   const { hanko } = await register(HANKO_API_URL, { translations: { en } });
   hankoInstance = hanko;
+  window.__hanko = hanko;
+  window.__hankoReady = true;
 
-  hanko.onSessionCreated(() => {
+  // Если сессия уже была — сохраняем userId
+  await saveCurrentUser();
+
+  hanko.onSessionCreated(async () => {
+    await saveCurrentUser();
     if (typeof closeModal === "function") closeModal();
     if (typeof enterCabinet === "function") enterCabinet("parent");
   });
@@ -33,8 +53,6 @@ try {
     if (currentRole === "parent" && typeof returnToStart === "function") returnToStart();
   });
 
-  window.__hanko = hanko;
-  window.__hankoReady = true;
   if (typeof log === "function") log("Hanko готов");
 } catch (err) {
   window.__hankoReady = false;
@@ -42,7 +60,7 @@ try {
 }
 
 /* ============================================================
-   Главная функция, которую вызывает ui.js
+   Главная функция — вызывается из ui.js
    ============================================================ */
 window.showHankoAuth = function () {
   const container = document.getElementById("hankoAuthContainer");
@@ -53,61 +71,57 @@ window.showHankoAuth = function () {
     return false;
   }
 
+  const savedUserId = localStorage.getItem(HANKO_USERID_KEY);
   const savedEmail = localStorage.getItem(HANKO_EMAIL_KEY);
 
-  if (savedEmail) {
-    // Устройство уже привязано к родителю — сразу биометрия
-    showBiometricButton(container, savedEmail);
-  } else if (typeof PARENT_ACCOUNTS !== "undefined" && PARENT_ACCOUNTS.length) {
-    // Первый раз на этом устройстве — показываем выбор "Папа / Мама"
-    showParentChooser(container);
+  if (savedUserId) {
+    // Устройство уже привязано — только биометрия
+    showBiometricButton(container, savedEmail || "");
   } else {
-    // Фолбэк: если список пуст — обычная форма Hanko
+    // Первый вход на устройстве — обычная форма Hanko
     showHankoForm(container, null);
   }
   return true;
 };
 
 /* ============================================================
-   Первый вход: выбор родителя (один раз на устройстве)
+   Кнопка биометрии (устройство привязано)
    ============================================================ */
-function showParentChooser(container) {
-  var html = '<div style="text-align:center; padding:8px 0;">' +
-    '<p style="font-size:13px; color:#8B7DA5; margin:0 0 14px;">Кто будет входить с этого устройства?</p>';
-
-  PARENT_ACCOUNTS.forEach(function (acc, i) {
-    var safeLabel = String(acc.label || ("Родитель " + (i + 1))).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-    html += '<button type="button" data-parent-idx="' + i + '" style="' +
-      'width:100%; min-height:48px; padding:12px 20px; margin-bottom:10px; border:0; border-radius:14px; ' +
-      'background:linear-gradient(135deg,#8B5CF6,#7C3AED); color:#FFF; font-size:15px; font-weight:700; ' +
-      'font-family:Nunito,sans-serif; cursor:pointer; box-shadow:0 6px 18px rgba(139,92,246,.35);">' +
-      safeLabel +
-    '</button>';
+function showBiometricButton(container, email) {
+  var safeEmail = String(email || "").replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
   });
 
-  html += '<p style="font-size:11px; color:#A89BB0; margin:8px 0 0;">Выбор запомнится на этом устройстве.</p></div>';
+  var subtitle = safeEmail ? ('Вход для <strong>' + safeEmail + '</strong>') : 'Вход для родителя';
 
-  container.innerHTML = html;
+  container.innerHTML =
+    '<div style="text-align:center; padding:8px 0;">' +
+      '<p style="font-size:13px; color:#8B7DA5; margin:0 0 14px;">' + subtitle + '</p>' +
+      '<button id="hankoBioBtn" type="button" style="' +
+        'width:100%; min-height:52px; padding:14px 20px; border:0; border-radius:14px; ' +
+        'background:linear-gradient(135deg,#8B5CF6,#7C3AED); color:#FFF; font-size:16px; font-weight:700; ' +
+        'font-family:Nunito,sans-serif; cursor:pointer; box-shadow:0 6px 18px rgba(139,92,246,.35);">' +
+        '👆 Войти по Face ID / отпечатку' +
+      '</button>' +
+      '<button id="hankoSwitchBtn" type="button" style="' +
+        'width:100%; margin-top:12px; padding:10px; border:0; background:transparent; ' +
+        'color:#8B7DA5; font-size:12px; font-weight:600; cursor:pointer; text-decoration:underline;">' +
+        'Сменить аккаунт на этом устройстве' +
+      '</button>' +
+    '</div>';
 
-  container.querySelectorAll("[data-parent-idx]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var idx = Number(btn.dataset.parentIdx);
-      var acc = PARENT_ACCOUNTS[idx];
-      if (!acc || !acc.email) return;
-
-      // Сохраняем email — теперь это устройство привязано к этому родителю
-      localStorage.setItem(HANKO_EMAIL_KEY, acc.email);
-
-      // Сразу запускаем биометрию
-      triggerPasskeyLogin(container, acc.email);
-    });
+  document.getElementById("hankoBioBtn").addEventListener("click", function () {
+    triggerPasskeyLogin(container);
+  });
+  document.getElementById("hankoSwitchBtn").addEventListener("click", function () {
+    localStorage.removeItem(HANKO_EMAIL_KEY);
+    localStorage.removeItem(HANKO_USERID_KEY);
+    showHankoForm(container, null);
   });
 }
 
 /* ============================================================
-   Обычная форма Hanko (фолбэк)
+   Обычная форма Hanko (только первый вход)
    ============================================================ */
 function showHankoForm(container, email) {
   container.innerHTML = "";
@@ -119,69 +133,25 @@ function showHankoForm(container, email) {
 }
 
 /* ============================================================
-   Кнопка биометрии (устройство уже привязано)
+   Прямой вызов WebAuthn — без формы
    ============================================================ */
-function showBiometricButton(container, email) {
-  var safeEmail = String(email).replace(/[&<>"']/g, function (c) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-  });
-
-  container.innerHTML =
-    '<div style="text-align:center; padding:8px 0;">' +
-      '<p style="font-size:13px; color:#8B7DA5; margin:0 0 14px;">Вход для <strong>' + safeEmail + '</strong></p>' +
-      '<button id="hankoBioBtn" type="button" style="' +
-        'width:100%; min-height:52px; padding:14px 20px; border:0; border-radius:14px; ' +
-        'background:linear-gradient(135deg,#8B5CF6,#7C3AED); color:#FFF; font-size:16px; font-weight:700; ' +
-        'font-family:Nunito,sans-serif; cursor:pointer; box-shadow:0 6px 18px rgba(139,92,246,.35);">' +
-        '👆 Войти по Face ID / отпечатку' +
-      '</button>' +
-      '<button id="hankoSwitchBtn" type="button" style="' +
-        'width:100%; margin-top:12px; padding:10px; border:0; background:transparent; ' +
-        'color:#8B7DA5; font-size:12px; font-weight:600; cursor:pointer; text-decoration:underline;">' +
-        'Сменить родителя на этом устройстве' +
-      '</button>' +
-    '</div>';
-
-  document.getElementById("hankoBioBtn").addEventListener("click", function () {
-    triggerPasskeyLogin(container, email);
-  });
-  document.getElementById("hankoSwitchBtn").addEventListener("click", function () {
-    localStorage.removeItem(HANKO_EMAIL_KEY);
-    showParentChooser(container);
-  });
-}
-
-/* ============================================================
-   Запуск passkey через Hanko
-   ============================================================ */
-function triggerPasskeyLogin(container, email) {
+async function triggerPasskeyLogin(container) {
   container.innerHTML = '<p class="modal-hint" style="text-align:center;">Запрашиваю биометрию…</p>';
 
-  const el = document.createElement("hanko-auth");
-  el.setAttribute("lang", "en");
-  el.setAttribute("shadow", "false");
-  el.setAttribute("prefilled-email", email);
-  container.appendChild(el);
+  const userId = localStorage.getItem(HANKO_USERID_KEY);
+  if (!userId) {
+    showHankoForm(container, null);
+    return;
+  }
 
-  var tries = 0;
-  var maxTries = 40;
-  var interval = setInterval(function () {
-    tries++;
-    var allButtons = container.querySelectorAll("button");
-    var target = null;
-    for (var i = 0; i < allButtons.length; i++) {
-      var txt = (allButtons[i].textContent || "").toLowerCase();
-      if (txt.indexOf("passkey") >= 0 || txt.indexOf("face id") >= 0 || txt.indexOf("отпечат") >= 0) {
-        target = allButtons[i];
-        break;
-      }
+  try {
+    if (hankoInstance && hankoInstance.webauthn && typeof hankoInstance.webauthn.login === "function") {
+      await hankoInstance.webauthn.login(userId);
+      return;
     }
-    if (target) {
-      clearInterval(interval);
-      target.click();
-    } else if (tries >= maxTries) {
-      clearInterval(interval);
-      showHankoForm(container, email);
-    }
-  }, 100);
+    throw new Error("Метод webauthn.login недоступен");
+  } catch (e) {
+    if (typeof logWarn === "function") logWarn("Ошибка passkey login:", e);
+    showHankoForm(container, null);
+  }
 }

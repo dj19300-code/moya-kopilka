@@ -4,7 +4,7 @@
    Точка входа — только порядок инициализации
    ============================================================ */
 
-log("Моя копилка v58 загружена (модульная структура)");
+log("Моя копилка v59 загружена (модульная структура)");
 
 initTheme();
 paintStaticIcons();
@@ -19,8 +19,7 @@ initHotkeys();
 initSearch();
 initPush();
 
-// Однократная проверка бейджей при старте — если данные уже накоплены
-// (например, после обновления приложения у существующего пользователя)
+// Однократная проверка бейджей при старте
 setTimeout(function () {
   if (typeof checkBadges === "function") {
     try { checkBadges(); } catch (e) { logWarn("checkBadges error:", e); }
@@ -28,6 +27,7 @@ setTimeout(function () {
 }, 1200);
 
 setInterval(checkDayChange, DAY_CHECK_INTERVAL_MS);
+
 document.addEventListener("visibilitychange", function () {
   if (!document.hidden) {
     checkDayChange();

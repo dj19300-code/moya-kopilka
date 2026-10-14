@@ -682,7 +682,6 @@ function renderActivityChart() {
   var maxVal = Math.max.apply(null, values);
   if (maxVal < 1) maxVal = 1;
 
-  // Учитываем devicePixelRatio, чтобы не было размытия
   var dpr = window.devicePixelRatio || 1;
   var cssW = canvas.clientWidth || 640;
   var cssH = canvas.clientHeight || 200;
@@ -697,7 +696,6 @@ function renderActivityChart() {
   var colorBar2 = "#8B5CF6";
   var colorBarDim = isDark ? "#4A4565" : "#E8DDFF";
 
-  // Сброс
   ctx.clearRect(0, 0, cssW, cssH);
 
   var padL = 6, padR = 6, padT = 10, padB = 26;
@@ -707,7 +705,6 @@ function renderActivityChart() {
   var barW = (chartW - barGap * (days.length - 1)) / days.length;
   if (barW < 2) barW = 2;
 
-  // Горизонтальная линия нуля
   ctx.strokeStyle = colorGrid;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -715,7 +712,6 @@ function renderActivityChart() {
   ctx.lineTo(padL + chartW, padT + chartH + 0.5);
   ctx.stroke();
 
-  // Столбики
   days.forEach(function (d, i) {
     var v = pointsByDay[d];
     var x = padL + i * (barW + barGap);
@@ -731,7 +727,6 @@ function renderActivityChart() {
       ctx.fillStyle = colorBarDim;
     }
 
-    // Скруглённый верх столбика
     var r = Math.min(3, barW / 2, barH / 2);
     ctx.beginPath();
     ctx.moveTo(x, y + barH);
@@ -744,7 +739,6 @@ function renderActivityChart() {
     ctx.fill();
   });
 
-  // Подписи: только первая, средняя и последняя даты
   ctx.fillStyle = colorLabel;
   ctx.font = "10px Nunito, sans-serif";
   ctx.textAlign = "left";
@@ -768,7 +762,6 @@ function renderActivityChart() {
     ctx.fillText(label, x, padT + chartH + 6);
   });
 
-  // Максимум сверху слева
   ctx.textAlign = "right";
   ctx.fillStyle = colorLabel;
   ctx.font = "10px Nunito, sans-serif";

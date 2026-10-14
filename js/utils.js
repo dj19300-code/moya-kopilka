@@ -156,20 +156,6 @@ function toArray(v) {
   return [];
 }
 
-/* Считает одобренные задания за последние 7 дней (сегодня + 6 назад).
-   Используется в бейдже «Трудяга». */
-function countApprovedForWeek(d) {
-  if (!d || !Array.isArray(d.completions)) return 0;
-  var now = new Date();
-  var from = new Date(now);
-  from.setDate(from.getDate() - 6);
-  var fromStr = formatDate(from);
-  var toStr = formatDate(now);
-  return d.completions.filter(function (c) {
-    return c.status === "approved" && c.date >= fromStr && c.date <= toStr;
-  }).length;
-}
-
 var localStore = {
   get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
   set: function (k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { logWarn("localStorage full?"); return false; } },

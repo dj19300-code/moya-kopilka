@@ -15,7 +15,6 @@ var THEME_KEY = "familyBalanceTheme";
 var PARENT_PASSWORD = "1234";
 
 // Игровая механика
-var EXCHANGE_RATE = 5;
 var HISTORY_LIMIT = 5;
 var GRADES_LIMIT = 3;
 var NOTIF_LIMIT = 100;
@@ -36,7 +35,7 @@ var SCROLL_TOP_THRESHOLD = 400;
 var FAMILY_ID = "moya-kopilka-7k3m9p2x8q10DenL";
 
 var firebaseConfig = {
-  apiKey: "AIzaSyBnIaSEK1fIiL8U709XOjwAPoTPdxQ_3Hc",
+  apiKey: "AIzaSyBL8WTvJI4AN2C5E_PYkGy04sjEkD-7jjk",
   authDomain: "family-balance-2fc27.firebaseapp.com",
   databaseURL: "https://family-balance-2fc27-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "family-balance-2fc27",
@@ -204,14 +203,11 @@ var BADGES = [
   }
 ];
 
+/* Ключи, которые синхронизируются в Firebase и localStorage.
+   ВАЖНО: включают streak/badges — без них они не сохранялись! */
 var DATA_KEYS = [
   "balance","points","totalEarnedPoints","lastLevel","avatar","lastTreasureDate","guffyMode",
   "profile","chores","completions","grades","gradeRequests","withdrawRequests",
   "goals","transactions","notifications",
   "streak","streakBest","streakLastDate","badges","badgesResetAt"
-];
-
-var PARENT_ACCOUNTS = [
-  { label: "👨 Папа",  email: "dj19300@yandex.ru" },
-  { label: "👩 Мама",  email: "leralera2701@yandex.ru" }
 ];

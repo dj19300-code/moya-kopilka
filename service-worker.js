@@ -1,7 +1,7 @@
 "use strict";
 
 // Меняй версию, когда хочешь принудительно обновить кэш
-var CACHE_NAME = "moya-kopilka-v10";
+var CACHE_NAME = "moya-kopilka-v13";
 
 var URLS_TO_CACHE = [
   "./",
@@ -74,7 +74,6 @@ self.addEventListener("notificationclick", function (event) {
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
-      // Ищем уже открытое приложение
       for (var i = 0; i < clientList.length; i++) {
         var client = clientList[i];
         var clientUrl = client.url || "";
@@ -82,14 +81,12 @@ self.addEventListener("notificationclick", function (event) {
           var cUrl = new URL(clientUrl);
           var tUrl = new URL(targetUrl, self.location.origin);
           if (cUrl.origin === tUrl.origin) {
-            // Передаём URL для навигации + фокусируем
             client.postMessage({ type: "navigate", url: tUrl.pathname + tUrl.search });
             if ("focus" in client) return client.focus();
             return;
           }
         } catch (e) {}
       }
-      // Ничего не открыто — открываем
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }

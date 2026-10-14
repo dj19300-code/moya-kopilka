@@ -10,9 +10,9 @@ function createInitialData() {
     lastLevel: "Яйцо", avatar: "👧", lastTreasureDate: "", guffyMode: "active",
     profile: { name: "", age: "", className: "", birthday: "" },
     chores: [
-      { id: 1, title: "Заправить кровать", description: "Аккуратно заправить кровать", reward: 2, repeat: "daily", days: [], maxPerDay: 1 },
-      { id: 2, title: "Помочь с посудой", description: "Помыть посуду и протереть стол", reward: 5, repeat: "daily", days: [], maxPerDay: 1 },
-      { id: 3, title: "Убрать рабочее место", description: "Положить вещи на место", reward: 4, repeat: "weekdays", days: [], maxPerDay: 1 }
+      { id: "1", title: "Заправить кровать",    description: "Аккуратно заправить кровать",    reward: 2, repeat: "daily",    days: [], maxPerDay: 1 },
+      { id: "2", title: "Помочь с посудой",     description: "Помыть посуду и протереть стол", reward: 5, repeat: "daily",    days: [], maxPerDay: 1 },
+      { id: "3", title: "Убрать рабочее место", description: "Положить вещи на место",         reward: 4, repeat: "weekdays", days: [], maxPerDay: 1 }
     ],
     completions: [], grades: [], gradeRequests: [], withdrawRequests: [],
     goals: [], transactions: [], notifications: [],
@@ -24,115 +24,122 @@ function createInitialData() {
 function normalize(raw) {
   var base = createInitialData();
   if (!raw || typeof raw !== "object") return base;
+
   function num(v) { return Number.isFinite(Number(v)) ? Number(v) : 0; }
-  var points = num(raw.points);
+  function str(v) { return v == null ? "" : String(v); }
+  function nid(v) {
+    if (v == null || v === "") return uniqueId();
+    return String(v);
+  }
+
+  var points      = num(raw.points);
   var totalEarned = Math.max(num(raw.totalEarnedPoints), points);
-  var profile = raw.profile && typeof raw.profile === "object" ? raw.profile : {};
+  var profile     = raw.profile && typeof raw.profile === "object" ? raw.profile : {};
 
   return {
     balance: num(raw.balance),
-    points: points,
+    points:  points,
     totalEarnedPoints: totalEarned,
     lastLevel: String(raw.lastLevel || LEVELS[0].name),
-    avatar: AVATARS.indexOf(raw.avatar) >= 0 ? raw.avatar : "👧",
+    avatar:    AVATARS.indexOf(raw.avatar) >= 0 ? raw.avatar : "👧",
     lastTreasureDate: String(raw.lastTreasureDate || ""),
     guffyMode: ["active", "quiet", "off"].indexOf(raw.guffyMode) >= 0 ? raw.guffyMode : "active",
     profile: {
-      name: String(profile.name || "").trim().slice(0, 20),
-      age: profile.age !== "" && Number.isFinite(Number(profile.age)) ? String(toInt(profile.age)) : "",
+      name:      String(profile.name || "").trim().slice(0, 20),
+      age:       profile.age !== "" && Number.isFinite(Number(profile.age)) ? String(toInt(profile.age)) : "",
       className: String(profile.className || "").trim().slice(0, 6),
-      birthday: profile.birthday ? String(profile.birthday) : ""
+      birthday:  profile.birthday ? String(profile.birthday) : ""
     },
-    chores: toArray(raw.chores).filter(function (c) { return c && typeof c === "object"; }).map(function (c, i) {
+    chores: toArray(raw.chores).filter(function (c) { return c && typeof c === "object"; }).map(function (c) {
       var mpd = toInt(c.maxPerDay);
       if (!Number.isInteger(mpd) || mpd < 1) mpd = 1;
       if (mpd > 999) mpd = 999;
       return {
-        id: Number.isFinite(Number(c.id)) ? Number(c.id) : uniqueId() + i,
-        title: String(c.title || "").trim() || "Задание",
+        id: nid(c.id),
+        title:       String(c.title || "").trim() || "Задание",
         description: String(c.description || "").trim(),
-        reward: Math.max(0, toInt(c.reward) || 0),
-        repeat: ["daily", "weekdays", "weekend", "custom", "once"].indexOf(c.repeat) >= 0 ? c.repeat : "daily",
-        days: Array.isArray(c.days) ? c.days.map(Number).filter(function (d) { return d >= 0 && d <= 6; }) : [],
-        maxPerDay: mpd
+        reward:      Math.max(0, toInt(c.reward) || 0),
+        repeat:      ["daily", "weekdays", "weekend", "custom", "once"].indexOf(c.repeat) >= 0 ? c.repeat : "daily",
+        days:        Array.isArray(c.days) ? c.days.map(Number).filter(function (d) { return d >= 0 && d <= 6; }) : [],
+        maxPerDay:   mpd
       };
     }),
     completions: toArray(raw.completions).filter(function (c) { return c && typeof c === "object"; }).map(function (c) {
       return {
-        id: Number.isFinite(Number(c.id)) ? Number(c.id) : uniqueId(),
-        choreId: Number(c.choreId),
-        date: String(c.date || today()),
-        status: ["pending", "approved", "rejected"].indexOf(c.status) >= 0 ? c.status : "pending",
-        comment: String(c.comment || ""),
-        photo: typeof c.photo === "string" && c.photo !== "__removed__" ? c.photo : "",
+        id:       nid(c.id),
+        choreId:  str(c.choreId),
+        date:     String(c.date || today()),
+        status:   ["pending", "approved", "rejected"].indexOf(c.status) >= 0 ? c.status : "pending",
+        comment:  String(c.comment || ""),
+        photo:    typeof c.photo === "string" && c.photo !== "__removed__" ? c.photo : "",
         approvedAt: num(c.approvedAt)
       };
     }),
     grades: toArray(raw.grades).filter(function (g) { return g && typeof g === "object"; }).map(function (g) {
       return {
-        id: Number.isFinite(Number(g.id)) ? Number(g.id) : uniqueId(),
+        id:      nid(g.id),
         subject: String(g.subject || "").trim() || "Предмет",
-        value: Math.min(10, Math.max(2, toInt(g.value) || 0)),
+        value:   Math.min(10, Math.max(2, toInt(g.value) || 0)),
         payment: num(g.payment),
         penalty: num(g.penalty),
-        date: String(g.date || today()),
-        ts: num(g.ts)
+        date:    String(g.date || today()),
+        ts:      num(g.ts)
       };
     }),
     gradeRequests: toArray(raw.gradeRequests).filter(function (r) { return r && typeof r === "object"; }).map(function (r) {
       return {
-        id: Number.isFinite(Number(r.id)) ? Number(r.id) : uniqueId(),
+        id:      nid(r.id),
         subject: String(r.subject || "").trim() || "Предмет",
-        value: Math.min(10, Math.max(2, toInt(r.value) || 0)),
-        date: String(r.date || today())
+        value:   Math.min(10, Math.max(2, toInt(r.value) || 0)),
+        date:    String(r.date || today())
       };
     }),
     withdrawRequests: toArray(raw.withdrawRequests).filter(function (r) { return r && typeof r === "object"; }).map(function (r) {
       var amt = Math.max(1, toInt(r.amount) || 1);
       return {
-        id: Number.isFinite(Number(r.id)) ? Number(r.id) : uniqueId(),
-        amount: amt,
+        id:              nid(r.id),
+        amount:          amt,
         requestedAmount: Number.isFinite(Number(r.requestedAmount)) ? Math.max(1, toInt(r.requestedAmount)) : amt,
-        reason: String(r.reason || "").trim().slice(0, 60),
-        date: String(r.date || today()),
-        status: ["pending", "approved", "rejected"].indexOf(r.status) >= 0 ? r.status : "pending"
+        reason:          String(r.reason || "").trim().slice(0, 60),
+        date:            String(r.date || today()),
+        status:          ["pending", "approved", "rejected"].indexOf(r.status) >= 0 ? r.status : "pending"
       };
     }),
     goals: toArray(raw.goals).filter(function (g) { return g && typeof g === "object"; }).map(function (g) {
       return {
-        id: Number.isFinite(Number(g.id)) ? Number(g.id) : uniqueId(),
-        title: String(g.title || "").trim() || "Цель",
-        price: Math.max(1, toInt(g.price) || 1),
-        deadline: g.deadline ? String(g.deadline) : "",
+        id:            nid(g.id),
+        title:         String(g.title || "").trim() || "Цель",
+        price:         Math.max(1, toInt(g.price) || 1),
+        deadline:      g.deadline ? String(g.deadline) : "",
         notifiedReady: !!g.notifiedReady,
-        important: !!g.important
+        important:     !!g.important
       };
     }).slice(0, MAX_GOALS),
     transactions: toArray(raw.transactions).filter(function (t) { return t && typeof t === "object"; }).map(function (t) {
       return {
         description: String(t.description || "Операция"),
-        byn: num(t.byn != null ? t.byn : t.amount),
-        points: num(t.points),
-        date: String(t.date || today()),
-        ts: num(t.ts)
+        byn:         num(t.byn != null ? t.byn : t.amount),
+        points:      num(t.points),
+        date:        String(t.date || today()),
+        ts:          num(t.ts)
       };
     }),
     notifications: toArray(raw.notifications).filter(function (n) { return n && typeof n === "object"; }).map(function (n) {
       return {
-        id: Number.isFinite(Number(n.id)) ? Number(n.id) : uniqueId(),
+        id:      nid(n.id),
         forRole: n.forRole === "parent" ? "parent" : "child",
-        text: String(n.text || "").trim(),
-        icon: String(n.icon || "🔔").slice(0, 4),
-        ts: Number.isFinite(Number(n.ts)) ? Number(n.ts) : Date.now(),
-        date: String(n.date || today()),
-        read: !!n.read
+        text:    String(n.text || "").trim(),
+        icon:    String(n.icon || "🔔").slice(0, 4),
+        ts:      Number.isFinite(Number(n.ts)) ? Number(n.ts) : Date.now(),
+        date:    String(n.date || today()),
+        read:    !!n.read
       };
     }),
-    streak: Math.max(0, toInt(raw.streak) || 0),
-    streakBest: Math.max(0, toInt(raw.streakBest) || 0),
+    streak:         Math.max(0, toInt(raw.streak) || 0),
+    streakBest:     Math.max(0, toInt(raw.streakBest) || 0),
     streakLastDate: String(raw.streakLastDate || ""),
-    badges: Array.isArray(raw.badges) ? raw.badges.filter(function (x) { return typeof x === "string"; }) : [],
-    badgesResetAt: num(raw.badgesResetAt)
+    badges:         Array.isArray(raw.badges) ? raw.badges.filter(function (x) { return typeof x === "string"; }) : [],
+    badgesResetAt:  num(raw.badgesResetAt)
   };
 }
 
@@ -175,11 +182,10 @@ try {
           firebaseRef.on("value", function (snap) {
             var raw = snap.val();
             if (raw) {
-              // Защита от гонки: если есть локальные изменения, ещё не улетевшие в Firebase — не затираем
               if (lastSyncedData) {
                 var localStr, syncStr;
                 try { localStr = JSON.stringify(data); } catch (e) { localStr = ""; }
-                try { syncStr = JSON.stringify(lastSyncedData); } catch (e) { syncStr = ""; }
+                try { syncStr  = JSON.stringify(lastSyncedData); } catch (e) { syncStr = ""; }
                 if (localStr !== syncStr) {
                   logWarn("Пропускаю серверное обновление — есть несинхронизированные локальные изменения");
                   setSyncStatus("online", "");
@@ -198,9 +204,7 @@ try {
               firebaseRef.set(data);
             }
             lastSyncedData = JSON.parse(JSON.stringify(data));
-            try {
-              localStore.set(STORAGE_KEY, JSON.stringify(stripPhotos(data)));
-            } catch (e) {}
+            try { localStore.set(STORAGE_KEY, JSON.stringify(stripPhotos(data))); } catch (e) {}
             if (cleanupOrphanCompletions()) {
               lastSyncedData = null;
               saveData();
@@ -260,7 +264,6 @@ function computeDiff(newData, oldData) {
   return diff;
 }
 
-/* Обрезка истории: не даём данным расти бесконечно */
 function trimData() {
   var LIMIT_TX = 500;
   var LIMIT_COMPLETIONS = 400;
@@ -271,8 +274,7 @@ function trimData() {
     data.transactions = data.transactions.slice(0, LIMIT_TX);
   }
   if (data.completions.length > LIMIT_COMPLETIONS) {
-    var pending = [];
-    var rest = [];
+    var pending = [], rest = [];
     data.completions.forEach(function (c) {
       if (c.status === "pending") pending.push(c);
       else rest.push(c);
@@ -317,13 +319,13 @@ function saveData() {
 
 function setSyncStatus(state, text) {
   var banner = document.getElementById("syncBanner");
-  var label = document.getElementById("syncText");
+  var label  = document.getElementById("syncText");
   if (!banner || !label) return;
   banner.classList.remove("is-visible", "is-offline", "is-error");
   if (state === "online" || !state) return;
   banner.classList.add("is-visible");
   if (state === "offline") banner.classList.add("is-offline");
-  if (state === "error") banner.classList.add("is-error");
+  if (state === "error")   banner.classList.add("is-error");
   label.textContent = text || "";
 }
 
@@ -335,9 +337,7 @@ function updateSyncLine(state) {
     line.classList.add("is-saving");
   } else if (state === "online") {
     line.classList.add("is-online");
-    setTimeout(function () {
-      line.classList.remove("is-online");
-    }, 1500);
+    setTimeout(function () { line.classList.remove("is-online"); }, 1500);
   } else if (state === "offline") {
     line.classList.add("is-offline");
   } else if (state === "error") {
@@ -377,7 +377,7 @@ function getGuffyEmotion() {
   if (h >= GUFFY_NIGHT_START || h < GUFFY_NIGHT_END) return "sleeping";
   var ts = today();
   if (data.completions.some(function (c) { return c.status === "approved" && c.date === ts; })) return "happy";
-  if (data.completions.some(function (c) { return c.status === "pending" && c.date === ts; })) return "thinking";
+  if (data.completions.some(function (c) { return c.status === "pending"  && c.date === ts; })) return "thinking";
   return "normal";
 }
 
@@ -422,7 +422,7 @@ function checkLevelUp() {
     var prevIdx = -1, currIdx = -1;
     for (var i = 0; i < LEVELS.length; i++) {
       if (LEVELS[i].name === data.lastLevel) prevIdx = i;
-      if (LEVELS[i].name === lvl.name) currIdx = i;
+      if (LEVELS[i].name === lvl.name)     currIdx = i;
     }
     if (currIdx > prevIdx) {
       addNotification("child", "Новый уровень: " + lvl.name + "!", "🐉");
@@ -444,10 +444,9 @@ function checkGoalsReady() {
 }
 
 /* ---------- Стрик (серия дней подряд) ---------- */
-
 function updateStreak() {
   var ts = today();
-  if (data.streakLastDate === ts) return; // уже отметились сегодня
+  if (data.streakLastDate === ts) return;
 
   var yest = new Date();
   yest.setDate(yest.getDate() - 1);
@@ -464,15 +463,7 @@ function updateStreak() {
   }
 }
 
-/* ---------- Бейджи ----------
-   opts.silent = true — не показывать тосты/уведомления.
-   Возвращает количество новых бейджей.
-
-   ВАЖНО: если data.badgesResetAt > 0, все проверки работают
-   только по событиям, произошедшим ПОСЛЕ этого времени.
-   Это значит, что после сброса старые баллы/оценки/задания
-   больше не воскрешают бейджи.
-*/
+/* ---------- Бейджи ---------- */
 function checkBadges(opts) {
   opts = opts || {};
   var silent = !!opts.silent;
@@ -501,7 +492,6 @@ function checkBadges(opts) {
       }, 600 + i * 900);
     });
   }
-
   return newOnes.length;
 }
 
@@ -510,7 +500,7 @@ function isChoreActiveToday(c) {
   if (r === "daily") return true;
   var day = new Date().getDay();
   if (r === "weekdays") return day >= 1 && day <= 5;
-  if (r === "weekend") return day === 0 || day === 6;
+  if (r === "weekend")  return day === 0 || day === 6;
   if (r === "custom") {
     if (!Array.isArray(c.days) || !c.days.length) return true;
     return c.days.indexOf(day) >= 0;
@@ -521,10 +511,14 @@ function isChoreActiveToday(c) {
   return true;
 }
 function countToday(id) {
-  return data.completions.filter(function (c) { return c.choreId === id && c.date === today() && c.status !== "rejected"; }).length;
+  return data.completions.filter(function (c) {
+    return c.choreId === id && c.date === today() && c.status !== "rejected";
+  }).length;
 }
 function countTodayByStatus(id, s) {
-  return data.completions.filter(function (c) { return c.choreId === id && c.date === today() && c.status === s; }).length;
+  return data.completions.filter(function (c) {
+    return c.choreId === id && c.date === today() && c.status === s;
+  }).length;
 }
 
 function checkDailyTreasure() {
@@ -549,13 +543,9 @@ function checkDailyTreasure() {
   }
 }
 
-/* addTransaction — центральная функция начисления/списания.
-   Каждая транзакция получает ts: Date.now(), чтобы бейджи
-   могли учитывать только события после сброса.
-*/
 function addTransaction(d, opts) {
   opts = opts || {};
-  var byn = opts.byn || 0;
+  var byn    = opts.byn || 0;
   var points = opts.points || 0;
   if (!byn && !points) return;
 
@@ -569,27 +559,22 @@ function addTransaction(d, opts) {
       if (points < maxPoints) points = maxPoints;
     }
   }
-
   if (!byn && !points) return;
 
   data.transactions.unshift({
-    description: d,
-    byn: byn,
-    points: points,
-    date: today(),
-    ts: Date.now()
+    description: d, byn: byn, points: points,
+    date: today(), ts: Date.now()
   });
   data.balance += byn;
-  data.points += points;
+  data.points  += points;
   if (points > 0) data.totalEarnedPoints += points;
   if (points < 0 && opts.affectLevel) {
     data.totalEarnedPoints += points;
     if (data.totalEarnedPoints < 0) data.totalEarnedPoints = 0;
   }
   if (data.balance < 0) data.balance = 0;
-  if (data.points < 0) data.points = 0;
+  if (data.points  < 0) data.points  = 0;
 
-  // Стрик и бейджи — только для положительных «настоящих» начислений.
   var positive = (points > 0) || (byn > 0);
   var isCorrection = /^(Отмена|Изменение|Штраф)/.test(d);
   if (positive && !isCorrection) {

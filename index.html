@@ -48,7 +48,7 @@
       <button class="role-card role-card--parent" id="parentLogin" type="button">
         <div class="role-card__icon">👨‍👩‍👧</div>
         <strong>Кабинет родителя</strong>
-        <small>Вход по Face ID / отпечатку</small>
+        <small>Вход по паролю</small>
       </button>
     </div>
 
@@ -370,7 +370,7 @@
     </form>
   </div>
 
-      <div class="modal hidden" id="notificationsModal">
+  <div class="modal hidden" id="notificationsModal">
     <h3>🔔 Уведомления</h3>
     <div class="list" id="notificationsList"></div>
     <div class="modal-actions">
@@ -680,11 +680,16 @@
 
   <div class="modal hidden" id="passwordModal">
     <h3>Вход для родителя</h3>
-    <p class="modal-hint" style="margin:-8px 0 14px 0">Войдите по Face ID или отпечатку пальца.</p>
-    <div id="hankoAuthContainer"></div>
-    <div class="modal-actions">
-      <button class="button button--light" type="button" data-close-modal>Отмена</button>
-    </div>
+    <p class="modal-hint" style="margin:-8px 0 14px 0">Введите пароль.</p>
+    <form id="passwordForm">
+      <label>Пароль
+        <input id="passwordInput" type="password" inputmode="numeric" autocomplete="off" placeholder="••••" required>
+      </label>
+      <div class="modal-actions">
+        <button class="button button--light" type="button" data-close-modal>Отмена</button>
+        <button class="button button--primary" type="submit">Войти</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -699,7 +704,6 @@
 <script src="js/render.js"></script>
 <script src="js/actions.js"></script>
 <script src="js/ui.js"></script>
-<script type="module" src="js/hanko.js"></script>
 <script src="js/app.js"></script>
 <script>
   if ("serviceWorker" in navigator) {

@@ -1,12 +1,30 @@
 "use strict";
 
 /* ============================================================
-   Локальные push-уведомления родителю о новых заявках
-   Firebase on("value") + Service Worker
+   Локальные уведомления родителю о новых заявках.
+   ВАЖНО: это НЕ настоящий Web Push. Уведомления показываются,
+   пока приложение запущено (вкладка/ярлык PWA). Когда приложение
+   полностью закрыто — уведомления не приходят.
    ============================================================ */
 
-var NOTIFIED_IDS_KEY = "moya-kopilka-notified-ids";
-var PUSH_ENABLED_KEY = "moya-kopilka-push-enabled";
+var NOTIFIED_IDS_KEY       = "moya-kopilka-notified-ids";
+var PUSH_ENABLED_KEY       = "moya-kopilka-push-enabled";
+
+/* ---------- Определение платформы ---------- */
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function isStandalonePWA() {
+  try {
+    return window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
+  } catch (e) {
+    return false;
+  }
+}
 
 function pushSupported() {
   return "Notification" in window && "serviceWorker" in navigator;
@@ -16,12 +34,13 @@ function pushPermissionGranted() {
   return pushSupported() && Notification.permission === "granted";
 }
 
-/* Пользовательский «включатель»: разрешение браузера + наш флаг */
 function pushEnabled() {
   if (!pushPermissionGranted()) return false;
   try {
     return localStorage.getItem(PUSH_ENABLED_KEY) !== "0";
-  } catch (e) { return true; }
+  } catch (e) {
+    return true;
+  }
 }
 
 function setPushEnabledFlag(v) {
@@ -33,6 +52,12 @@ function setPushEnabledFlag(v) {
 /* ---------- Переключатель в настройках ---------- */
 
 function togglePushSwitch(checked) {
+  if (isIOS() && !isStandalonePWA()) {
+    showToast("Добавьте приложение на главный экран");
+    refreshPushBlock();
+    return;
+  }
+
   if (!pushSupported()) {
     showToast("Уведомления не поддерживаются");
     refreshPushBlock();
@@ -54,7 +79,7 @@ function togglePushSwitch(checked) {
       refreshPushBlock();
       return;
     }
-    // default → спрашиваем
+
     var result;
     try {
       result = Notification.requestPermission();
@@ -63,6 +88,7 @@ function togglePushSwitch(checked) {
       refreshPushBlock();
       return;
     }
+
     if (result && typeof result.then === "function") {
       result.then(function (perm) {
         if (perm === "granted") {
@@ -86,7 +112,6 @@ function togglePushSwitch(checked) {
         refreshPushBlock();
       });
     } else {
-      showToast("Браузер не поддерживает Web Push");
       refreshPushBlock();
     }
   } else {
@@ -96,35 +121,43 @@ function togglePushSwitch(checked) {
   }
 }
 
-/* Обновляет вид переключателя и подпись. Вызывать при открытии настроек,
-   при входе в кабинет родителя и после изменения разрешения. */
 function refreshPushBlock() {
-  var sw = document.getElementById("pushEnabledSwitch");
+  var sw   = document.getElementById("pushEnabledSwitch");
   var hint = document.getElementById("pushSwitchHint");
   if (!sw) return;
 
   var supported = pushSupported();
-  var perm = supported ? Notification.permission : "unsupported";
-  var on = pushEnabled();
+  var perm      = supported ? Notification.permission : "unsupported";
+  var on        = pushEnabled();
 
   sw.disabled = !supported;
-  sw.checked = on;
+  sw.checked  = on;
 
-  if (hint) {
-    if (!supported) {
-      hint.textContent = "Не поддерживается этим браузером";
-    } else if (perm === "denied") {
-      hint.textContent = "Заблокировано в настройках браузера";
-    } else if (on) {
-      hint.textContent = "Включены · заявки приходят на телефон";
-    } else {
-      hint.textContent = "Выключены · нажмите, чтобы включить";
-    }
+  if (!hint) return;
+
+  if (isIOS() && !isStandalonePWA()) {
+    hint.textContent = "На iPhone добавьте приложение на главный экран (Safari → Поделиться → На экран «Домой»)";
+    sw.disabled = true;
+    sw.checked  = false;
+    return;
+  }
+
+  if (!supported) {
+    hint.textContent = "Не поддерживается этим браузером";
+  } else if (perm === "denied") {
+    hint.textContent = "Заблокировано в настройках браузера";
+  } else if (on) {
+    hint.textContent = "Включены · работают, пока приложение открыто";
+  } else {
+    hint.textContent = "Выключены · нажмите, чтобы включить";
   }
 }
 
+/* ---------- Показ локального уведомления ---------- */
+
 function showLocalNotification(title, body, tag, url) {
   if (!pushEnabled()) return;
+
   navigator.serviceWorker.ready.then(function (reg) {
     var options = {
       body: body,
@@ -143,7 +176,7 @@ function showLocalNotification(title, body, tag, url) {
   });
 }
 
-/* ---------- Notified IDs (что уже показывали) ---------- */
+/* ---------- Notified IDs ---------- */
 
 function getNotifiedIds() {
   try {
@@ -153,16 +186,18 @@ function getNotifiedIds() {
     if (!obj || typeof obj !== "object") return { completions: [], grades: [], withdrawals: [] };
     return {
       completions: Array.isArray(obj.completions) ? obj.completions : [],
-      grades: Array.isArray(obj.grades) ? obj.grades : [],
+      grades:      Array.isArray(obj.grades)      ? obj.grades      : [],
       withdrawals: Array.isArray(obj.withdrawals) ? obj.withdrawals : []
     };
-  } catch (e) { return { completions: [], grades: [], withdrawals: [] }; }
+  } catch (e) {
+    return { completions: [], grades: [], withdrawals: [] };
+  }
 }
 
 function saveNotifiedIds(ids) {
   try {
     ids.completions = ids.completions.slice(-500);
-    ids.grades = ids.grades.slice(-500);
+    ids.grades      = ids.grades.slice(-500);
     ids.withdrawals = ids.withdrawals.slice(-500);
     localStorage.setItem(NOTIFIED_IDS_KEY, JSON.stringify(ids));
   } catch (e) {}
@@ -193,8 +228,9 @@ function checkNewPendingForPush(newData) {
     return;
   }
 
-  // Не в кабинете родителя или уведомления выключены — не показываем сейчас.
-  if (!pushEnabled() || currentRole !== "parent") return;
+  if (!pushEnabled() || window.currentRole !== "parent") {
+    return;
+  }
 
   var childName = (newData.profile && newData.profile.name || "").trim();
   var prefix = childName ? childName + ": " : "";
@@ -241,51 +277,48 @@ function checkNewPendingForPush(newData) {
   saveNotifiedIds(notified);
 }
 
-/* ---------- Deep link (?goto=...) ---------- */
+/* ============================================================
+   Deep link (?goto=...) — работает с модалкой пароля
+   ============================================================ */
 
 function handlePushDeepLink() {
   var params;
   try { params = new URLSearchParams(window.location.search); }
   catch (e) { return; }
+
   var goto = params.get("goto");
-  var id = params.get("id");
+  var id   = params.get("id");
   if (!goto) return;
 
   try {
     window.history.replaceState({}, "", window.location.pathname + window.location.hash);
   } catch (e) {}
 
-  var proceed = function () {
-    currentRole = "parent";
-    document.getElementById("startScreen").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    render();
-    setTimeout(function () { scrollAndHighlight(goto, id); }, 400);
-  };
+  window.__pendingDeepLink = { goto: goto, id: id };
 
-  if (currentRole === "parent") {
+  if (window.currentRole === "parent") {
     setTimeout(function () { scrollAndHighlight(goto, id); }, 300);
+    window.__pendingDeepLink = null;
     return;
   }
 
-  openModal("passwordModal");
-  var passForm = document.getElementById("passwordForm");
-  if (!passForm) return;
-  var handler = function (e) {
-    e.preventDefault();
-    var inp = document.getElementById("passwordInput");
-    if (inp.value === PARENT_PASSWORD) {
-      passForm.removeEventListener("submit", handler);
-      closeModal();
-      proceed();
-    } else {
-      showToast("Неверный пароль");
-      inp.value = "";
-      inp.focus();
+  if (typeof window.openParentAuthModal === "function") {
+    window.openParentAuthModal();
+  } else {
+    var modal = document.getElementById("passwordModal");
+    if (modal) {
+      modal.parentNode.classList.remove("hidden");
+      modal.classList.remove("hidden");
     }
-  };
-  passForm.addEventListener("submit", handler);
+  }
 }
+
+window.flushPendingDeepLink = function () {
+  var p = window.__pendingDeepLink;
+  if (!p) return;
+  window.__pendingDeepLink = null;
+  setTimeout(function () { scrollAndHighlight(p.goto, p.id); }, 400);
+};
 
 function scrollAndHighlight(goto, id) {
   var target = null;
@@ -345,9 +378,10 @@ function initPush() {
 
   handlePushDeepLink();
 
-  // Периодическая проверка: страховка на случай пропущенного on("value")
   setInterval(function () {
-    if (currentRole === "parent" && pushEnabled() && typeof data !== "undefined" && data) {
+    if (window.currentRole === "parent" &&
+        pushEnabled() &&
+        typeof data !== "undefined" && data) {
       checkNewPendingForPush(data);
     }
   }, 20000);

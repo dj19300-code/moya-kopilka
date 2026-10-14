@@ -352,7 +352,7 @@ function approveWithdraw(id) {
 }
 
 function confirmApproveWithdraw() {
-  var id = Number(document.getElementById("approveWithdrawId").value);
+  var id = document.getElementById("approveWithdrawId").value;
   var amount = toInt(document.getElementById("approveWithdrawAmount").value);
   var r = data.withdrawRequests.find(function (x) { return x.id === id; });
   if (!r || r.status !== "pending") { closeModal(); return; }
@@ -480,10 +480,6 @@ function resetBalanceOnly() { if (!confirm("Обнулить баланс?")) re
 function clearHistoryOnly() { if (!confirm("Очистить историю?")) return; data.transactions = []; saveData(); closeModal(); showToast("История очищена"); }
 function resetLevelOnly() { if (!confirm("Сбросить уровень?")) return; data.totalEarnedPoints = 0; data.lastLevel = LEVELS[0].name; saveData(); closeModal(); showToast("Уровень сброшен"); }
 
-/* Сброс бейджей и стрика.
-   Ставим badgesResetAt = Date.now() — с этого момента старые
-   достижения (баллы, оценки, задания) больше не восстанавливают
-   бейджи, даже при silent-пересчёте. */
 function resetBadges() {
   if (!confirm("Сбросить достижения и серию дней? Баллы и история останутся.")) return;
   data.badges = [];
@@ -548,9 +544,6 @@ function openWeeklyReport() {
    ============================================================ */
 
 function openBadgesModal() {
-  // Silent-пересчёт бейджей: подтягивает достижения, заработанные
-  // на других устройствах, но не учитывает события ДО сброса
-  // (благодаря badgesResetAt).
   var had = false;
   if (typeof checkBadges === "function") {
     try {
@@ -656,7 +649,7 @@ function openPhotoViewer(src) {
 }
 
 function submitPhotoForm() {
-  var id = Number(document.getElementById("photoChoreId").value);
+  var id = document.getElementById("photoChoreId").value;
   var ch = data.chores.find(function (x) { return x.id === id; });
   if (!ch) { closeModal(); return; }
   var max = ch.maxPerDay || 1;

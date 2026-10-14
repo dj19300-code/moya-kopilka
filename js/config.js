@@ -11,8 +11,8 @@ var DEBUG = false;
 var STORAGE_KEY = "familyBalanceV44";
 var THEME_KEY = "familyBalanceTheme";
 
-// Hanko — API URL (из панели cloud.hanko.io → Dashboard → API URL)
-var HANKO_API_URL = "https://91600457-e67b-4236-8bcd-e1232ba6b85d.hanko.io";
+// Пароль для входа в кабинет родителя (простая защита, не для критичных данных)
+var PARENT_PASSWORD = "1234";
 
 // Игровая механика
 var EXCHANGE_RATE = 5;
@@ -87,7 +87,7 @@ var MATH_SUBJECT = "Математика";
 var KNOWN_SUBJECTS = ["Математика","Русский язык","Белорусский язык","Литературное чтение","Окружающий мир","Английский язык","Трудовое обучение","Изобразительное искусство","Физическая культура"];
 
 /* ============================================================
-   Достижения (бейджи).
+   Достижения (бейджи)
    ============================================================ */
 
 function _after(ts, since) {
@@ -210,10 +210,7 @@ var DATA_KEYS = [
   "goals","transactions","notifications",
   "streak","streakBest","streakLastDate","badges","badgesResetAt"
 ];
-/* ============================================================
-   Родители (email из Hanko Console → Users)
-   Подставь свои реальные email, которые ты вводил при регистрации.
-   ============================================================ */
+
 var PARENT_ACCOUNTS = [
   { label: "👨 Папа",  email: "dj19300@yandex.ru" },
   { label: "👩 Мама",  email: "leralera2701@yandex.ru" }

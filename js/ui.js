@@ -22,17 +22,14 @@ function openProfileModal() {
   var grid = $("#avatarGrid");
   if (grid) {
     grid.innerHTML = AVATARS.map(function (e) {
-      return '<button class="avatar-option ' + (e === pendingProfileAvatar ? "is-active" : "") + '" type="button" data-avatar="' + e + '">' + e + "</button>";
+      return '<button class="avatar-option ' + (e === pendingProfileAvatar ? "is-active" : "") +
+        '" type="button" data-avatar="' + e + '">' + e + "</button>";
     }).join("");
   }
-  var nameInput = $("#profileName");
-  if (nameInput) nameInput.value = data.profile.name || "";
-  var ageInput = $("#profileAge");
-  if (ageInput) ageInput.value = data.profile.age || "";
-  var clsInput = $("#profileClass");
-  if (clsInput) clsInput.value = data.profile.className || "";
-  var bdInput = $("#profileBirthday");
-  if (bdInput) bdInput.value = data.profile.birthday || "";
+  var nameInput = $("#profileName");     if (nameInput) nameInput.value = data.profile.name || "";
+  var ageInput  = $("#profileAge");      if (ageInput)  ageInput.value  = data.profile.age  || "";
+  var clsInput  = $("#profileClass");    if (clsInput)  clsInput.value  = data.profile.className || "";
+  var bdInput   = $("#profileBirthday"); if (bdInput)   bdInput.value   = data.profile.birthday || "";
   renderProfilePreview();
   openModal("profileModal");
 }
@@ -105,22 +102,22 @@ function openCommentModal(id, mode) {
   document.getElementById("commentChoreTitle").textContent = ch ? ch.title : "Задание";
   document.getElementById("commentText").value = "";
   var titleEl = document.getElementById("commentModalTitle");
-  var btnEl = document.getElementById("commentSubmitBtn");
-  var lblEl = document.getElementById("commentLabel");
-  var hintEl = document.getElementById("commentHint");
-  var txtEl = document.getElementById("commentText");
+  var btnEl   = document.getElementById("commentSubmitBtn");
+  var lblEl   = document.getElementById("commentLabel");
+  var hintEl  = document.getElementById("commentHint");
+  var txtEl   = document.getElementById("commentText");
   if (mode === "reject") {
     if (titleEl) titleEl.textContent = "Отклонить задание";
-    if (btnEl) btnEl.textContent = "✗ Отклонить";
-    if (lblEl) lblEl.childNodes[0].nodeValue = "Причина (необязательно)\n        ";
-    if (txtEl) txtEl.placeholder = "Например: фото нечёткое, переделай";
-    if (hintEl) hintEl.textContent = "Ребёнок увидит причину под заданием.";
+    if (btnEl)   btnEl.textContent   = "✗ Отклонить";
+    if (lblEl)   lblEl.childNodes[0].nodeValue = "Причина (необязательно)\n        ";
+    if (txtEl)   txtEl.placeholder = "Например: фото нечёткое, переделай";
+    if (hintEl)  hintEl.textContent = "Ребёнок увидит причину под заданием.";
   } else {
     if (titleEl) titleEl.textContent = "Одобрить задание";
-    if (btnEl) btnEl.textContent = "✓ Одобрить";
-    if (lblEl) lblEl.childNodes[0].nodeValue = "Комментарий (необязательно)\n        ";
-    if (txtEl) txtEl.placeholder = "Например: Отлично получилось!";
-    if (hintEl) hintEl.textContent = "Ребёнок увидит комментарий под заданием.";
+    if (btnEl)   btnEl.textContent   = "✓ Одобрить";
+    if (lblEl)   lblEl.childNodes[0].nodeValue = "Комментарий (необязательно)\n        ";
+    if (txtEl)   txtEl.placeholder = "Например: Отлично получилось!";
+    if (hintEl)  hintEl.textContent = "Ребёнок увидит комментарий под заданием.";
   }
   openModal("commentModal");
 }
@@ -152,10 +149,7 @@ function openBalanceManageModal(prefill) {
 }
 
 function openQuickManage(type, sign) {
-  if (sign === 0) {
-    openBalanceManageModal({ type: type, sign: 1 });
-    return;
-  }
+  if (sign === 0) { openBalanceManageModal({ type: type, sign: 1 }); return; }
   openBalanceManageModal({ type: type, sign: sign });
 }
 
@@ -164,6 +158,11 @@ function enterCabinet(role) {
   document.getElementById("startScreen").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
   render();
+
+  if (role === "parent" && typeof window.flushPendingDeepLink === "function") {
+    window.flushPendingDeepLink();
+  }
+
   if (role === "child") setTimeout(checkDailyTreasure, 800);
 }
 
@@ -182,11 +181,11 @@ function returnToStart() {
 function updateRoleVisibility() {
   var isParent = currentRole === "parent";
   $$(".parent-only").forEach(function (el) { el.classList.toggle("role-hidden", !isParent); });
-  $$(".child-only").forEach(function (el) { el.classList.toggle("role-hidden", isParent); });
+  $$(".child-only").forEach(function (el)  { el.classList.toggle("role-hidden",  isParent); });
 
-  var childHero = document.getElementById("childHero");
+  var childHero  = document.getElementById("childHero");
   var parentHero = document.getElementById("parentHero");
-  if (childHero) childHero.style.display = (currentRole === "child") ? "flex" : "none";
+  if (childHero)  childHero.style.display  = (currentRole === "child")  ? "flex" : "none";
   if (parentHero) parentHero.style.display = (currentRole === "parent") ? "flex" : "none";
 }
 
@@ -201,7 +200,6 @@ function initScrollTopButton() {
     else btn.classList.remove("is-visible");
     ticking = false;
   }
-
   function onScroll() {
     if (ticking) return;
     ticking = true;
@@ -213,11 +211,8 @@ function initScrollTopButton() {
   update();
 
   btn.addEventListener("click", function () {
-    try {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (e) {
-      window.scrollTo(0, 0);
-    }
+    try { window.scrollTo({ top: 0, behavior: "smooth" }); }
+    catch (e) { window.scrollTo(0, 0); }
   });
 }
 
@@ -241,10 +236,10 @@ function initBottomNav() {
   if (!nav) return;
 
   var sections = {
-    top: document.querySelector(".container"),
+    top:    document.querySelector(".container"),
     chores: document.getElementById("choresSection"),
     grades: document.getElementById("gradesSection"),
-    goals: document.getElementById("goalsSection")
+    goals:  document.getElementById("goalsSection")
   };
   var buttons = nav.querySelectorAll(".bottom-nav__btn");
 
@@ -257,10 +252,7 @@ function initBottomNav() {
   buttons.forEach(function (btn) {
     btn.addEventListener("click", function () {
       var key = btn.dataset.nav;
-      if (key === "profile") {
-        openProfileModal();
-        return;
-      }
+      if (key === "profile") { openProfileModal(); return; }
       var target = sections[key];
       if (!target) return;
       var offset = 70;
@@ -291,7 +283,7 @@ function initBottomNav() {
 }
 
 function initFab() {
-  var fab = document.getElementById("fab");
+  var fab  = document.getElementById("fab");
   var wrap = document.getElementById("fabWrap");
   if (!fab || !wrap) return;
 
@@ -308,14 +300,11 @@ function initFab() {
       close();
       var kind = btn.dataset.fab;
       if (kind === "chore") {
-        var b = document.getElementById("openChoreModal");
-        if (b) b.click();
+        var b = document.getElementById("openChoreModal"); if (b) b.click();
       } else if (kind === "grade") {
-        var b2 = document.getElementById("openGradeModal");
-        if (b2) b2.click();
+        var b2 = document.getElementById("openGradeModal"); if (b2) b2.click();
       } else if (kind === "goal") {
-        var b3 = document.getElementById("openGoalModal");
-        if (b3) b3.click();
+        var b3 = document.getElementById("openGoalModal"); if (b3) b3.click();
       }
     });
   });
@@ -327,9 +316,7 @@ function initPullToRefresh() {
   var indicator = document.getElementById("ptrIndicator");
   if (!indicator) return;
 
-  var startY = 0;
-  var pulling = false;
-  var threshold = 80;
+  var startY = 0, pulling = false, threshold = 80;
 
   document.addEventListener("touchstart", function (e) {
     if (window.pageYOffset > 0) return;
@@ -402,15 +389,12 @@ function handleShare() {
     text: "Семейная копилка: баллы, задания и цели",
     url: window.location.href
   };
-
   if (navigator.share) {
     navigator.share(shareData).catch(function () {});
   } else if (navigator.clipboard) {
     navigator.clipboard.writeText(shareData.url).then(function () {
       showToast("Ссылка скопирована", "success");
-    }).catch(function () {
-      showToast("Не удалось скопировать");
-    });
+    }).catch(function () { showToast("Не удалось скопировать"); });
   } else {
     showToast("Скопируйте адрес из строки браузера");
   }
@@ -440,43 +424,42 @@ function initHotkeys() {
       openSearch();
       return;
     }
-
     if (!currentRole) return;
 
-    if (key === "1") { e.preventDefault(); returnToStart(); setTimeout(function () { enterCabinet("child"); }, 100); return; }
-    if (key === "2") { e.preventDefault(); returnToStart(); setTimeout(function () {
-      openParentAuthModal();
-    }, 100); return; }
-
+    if (key === "1") {
+      e.preventDefault();
+      returnToStart();
+      setTimeout(function () { enterCabinet("child"); }, 100);
+      return;
+    }
+    if (key === "2") {
+      e.preventDefault();
+      returnToStart();
+      setTimeout(function () { openParentAuthModal(); }, 100);
+      return;
+    }
     if (key === "n" && currentRole === "parent") {
       e.preventDefault();
-      var b1 = document.getElementById("openChoreModal");
-      if (b1) b1.click();
+      var b1 = document.getElementById("openChoreModal"); if (b1) b1.click();
       return;
     }
     if (key === "g" && currentRole === "parent") {
       e.preventDefault();
-      var b2 = document.getElementById("openGradeModal");
-      if (b2) b2.click();
+      var b2 = document.getElementById("openGradeModal"); if (b2) b2.click();
       return;
     }
     if (key === "t" && currentRole === "parent") {
       e.preventDefault();
-      var b3 = document.getElementById("openGoalModal");
-      if (b3) b3.click();
+      var b3 = document.getElementById("openGoalModal"); if (b3) b3.click();
       return;
     }
-    if (key === "d") {
-      e.preventDefault();
-      toggleTheme();
-      return;
-    }
+    if (key === "d") { e.preventDefault(); toggleTheme(); return; }
   });
 }
 
 function openSearch() {
   var overlay = document.getElementById("searchOverlay");
-  var input = document.getElementById("searchInput");
+  var input   = document.getElementById("searchInput");
   if (!overlay || !input) return;
   overlay.classList.remove("hidden");
   input.value = "";
@@ -486,7 +469,7 @@ function openSearch() {
 
 function closeSearch() {
   var overlay = document.getElementById("searchOverlay");
-  var input = document.getElementById("searchInput");
+  var input   = document.getElementById("searchInput");
   if (!overlay) return;
   overlay.classList.add("hidden");
   if (input) input.value = "";
@@ -500,8 +483,7 @@ function getSearchItems() {
 
   data.chores.forEach(function (c) {
     items.push({
-      kind: "chore",
-      icon: "📋",
+      kind: "chore", icon: "📋",
       title: c.title,
       hint: c.description || (c.reward + " " + pluralPoints(c.reward)),
       action: function () {
@@ -519,8 +501,7 @@ function getSearchItems() {
 
   data.grades.forEach(function (g) {
     items.push({
-      kind: "grade",
-      icon: gradeEmoji(g.value),
+      kind: "grade", icon: gradeEmoji(g.value),
       title: g.subject + " — " + g.value,
       hint: g.date + (g.payment ? " · " + (g.payment > 0 ? "+" : "") + g.payment + " BYN" : ""),
       action: function () {
@@ -535,8 +516,7 @@ function getSearchItems() {
 
   data.goals.forEach(function (g) {
     items.push({
-      kind: "goal",
-      icon: "🎯",
+      kind: "goal", icon: "🎯",
       title: g.title,
       hint: g.price + " " + pluralPoints(g.price),
       action: function () {
@@ -613,9 +593,7 @@ function renderSearchResults(query) {
   }
 
   var groups = { chore: [], grade: [], goal: [], action: [] };
-  filtered.forEach(function (item) {
-    if (groups[item.kind]) groups[item.kind].push(item);
-  });
+  filtered.forEach(function (item) { if (groups[item.kind]) groups[item.kind].push(item); });
 
   var labels = { chore: "Задания", grade: "Оценки", goal: "Цели", action: "Действия" };
   var globalIdx = 0;
@@ -657,15 +635,13 @@ function executeSearchItem(idx) {
 }
 
 function initSearch() {
-  var overlay = document.getElementById("searchOverlay");
-  var input = document.getElementById("searchInput");
-  var closeBtn = document.getElementById("searchCloseBtn");
-  var results = document.getElementById("searchResults");
+  var overlay   = document.getElementById("searchOverlay");
+  var input     = document.getElementById("searchInput");
+  var closeBtn  = document.getElementById("searchCloseBtn");
+  var results   = document.getElementById("searchResults");
   if (!overlay || !input) return;
 
-  input.addEventListener("input", function () {
-    renderSearchResults(input.value);
-  });
+  input.addEventListener("input", function () { renderSearchResults(input.value); });
 
   input.addEventListener("keydown", function (e) {
     if (e.key === "ArrowDown") {
@@ -686,9 +662,7 @@ function initSearch() {
 
   if (closeBtn) closeBtn.addEventListener("click", closeSearch);
 
-  overlay.addEventListener("click", function (e) {
-    if (e.target === overlay) closeSearch();
-  });
+  overlay.addEventListener("click", function (e) { if (e.target === overlay) closeSearch(); });
 
   if (results) {
     results.addEventListener("click", function (e) {
@@ -711,28 +685,17 @@ function initSearch() {
 
 function openParentAuthModal() {
   openModal("passwordModal");
-  if (typeof window.showHankoAuth === "function") {
-    window.showHankoAuth();
-  } else {
-    var container = document.getElementById("hankoAuthContainer");
-    if (container) {
-      container.innerHTML = '<p class="modal-hint">Hanko загружается… Попробуйте через пару секунд.</p>';
-    }
+  var inp = document.getElementById("passwordInput");
+  if (inp) {
+    inp.value = "";
+    setTimeout(function () { inp.focus(); }, 100);
   }
 }
 
 function logoutParent() {
   if (!confirm("Выйти из кабинета родителя?")) return;
-  if (window.__hanko && typeof window.__hanko.logout === "function") {
-    window.__hanko.logout().then(function () {
-      returnToStart();
-      showToast("Вы вышли");
-    }).catch(function () {
-      returnToStart();
-    });
-  } else {
-    returnToStart();
-  }
+  returnToStart();
+  showToast("Вы вышли");
 }
 
 function bindEvents() {
@@ -744,6 +707,23 @@ function bindEvents() {
     parentBtn.addEventListener("click", function (e) {
       e.preventDefault();
       openParentAuthModal();
+    });
+  }
+
+  var passwordForm = document.getElementById("passwordForm");
+  if (passwordForm) {
+    passwordForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var inp = document.getElementById("passwordInput");
+      if (!inp) return;
+      if (inp.value === PARENT_PASSWORD) {
+        closeModal();
+        enterCabinet("parent");
+      } else {
+        showToast("Неверный пароль");
+        inp.value = "";
+        inp.focus();
+      }
     });
   }
 
@@ -782,9 +762,9 @@ function bindEvents() {
     var btn = e.target.closest("[data-action], #openChoreModal, #openGradeModal, #openGoalModal, #suggestGradeButton, #exportButton, #importButton, #weeklyReportButton, #resetPointsButton, #resetBalanceButton, #clearHistoryButton, #resetLevelButton, #resetBadgesButton, #logoutParentButton, #editLevelButton, #resetAllButton, #clearNotificationsBtn, #openBalanceManage, [data-close-modal]");
     if (!btn) return;
 
-    var id = btn.id;
+    var id     = btn.id;
     var action = btn.dataset.action;
-    var dataId = Number(btn.dataset.id);
+    var dataId = btn.dataset.id; // строка
 
     if (action === "toggle-theme") return toggleTheme();
     if (action === "share") return handleShare();
@@ -800,17 +780,17 @@ function bindEvents() {
     }
 
     if (id === "clearNotificationsBtn") return clearNotifications();
-    if (id === "weeklyReportButton") return openWeeklyReport();
+    if (id === "weeklyReportButton")   return openWeeklyReport();
     if (id === "importButton") {
       var fi = document.getElementById("importFileInput");
       if (fi) fi.click();
       return;
     }
-    if (id === "resetPointsButton") return resetPointsOnly();
+    if (id === "resetPointsButton")  return resetPointsOnly();
     if (id === "resetBalanceButton") return resetBalanceOnly();
     if (id === "clearHistoryButton") return clearHistoryOnly();
-    if (id === "resetLevelButton") return resetLevelOnly();
-    if (id === "resetBadgesButton") return resetBadges();
+    if (id === "resetLevelButton")   return resetLevelOnly();
+    if (id === "resetBadgesButton")  return resetBadges();
     if (id === "logoutParentButton") return logoutParent();
     if (id === "editLevelButton") {
       document.getElementById("levelEditValue").value = data.totalEarnedPoints;
@@ -859,17 +839,17 @@ function bindEvents() {
     }
     if (id === "exportButton") {
       var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement("a");
       a.href = url; a.download = "family-balance-backup.json"; a.click();
       URL.revokeObjectURL(url);
       return;
     }
     if (btn.hasAttribute("data-close-modal")) return closeModal();
 
-    if (action === "complete-chore") return openPhotoModal(dataId);
-    if (action === "delete-chore") return deleteChore(dataId);
-    if (action === "duplicate-chore") return duplicateChore(dataId);
+    if (action === "complete-chore")   return openPhotoModal(dataId);
+    if (action === "delete-chore")     return deleteChore(dataId);
+    if (action === "duplicate-chore")  return duplicateChore(dataId);
     if (action === "edit-chore") {
       var ch = data.chores.find(function (x) { return x.id === dataId; });
       if (!ch) return;
@@ -886,14 +866,14 @@ function bindEvents() {
       document.getElementById("choreModalTitle").textContent = "Редактировать задание";
       return openModal("choreModal");
     }
-    if (action === "approve-chore") return openCommentModal(dataId, "approve");
-    if (action === "reject-chore") return openCommentModal(dataId, "reject");
-    if (action === "approve-grade") return approveGrade(dataId);
-    if (action === "reject-grade") return rejectGrade(dataId);
-    if (action === "edit-grade") return openEditGrade(dataId);
-    if (action === "delete-grade") return deleteGrade(dataId);
+    if (action === "approve-chore")   return openCommentModal(dataId, "approve");
+    if (action === "reject-chore")    return openCommentModal(dataId, "reject");
+    if (action === "approve-grade")   return approveGrade(dataId);
+    if (action === "reject-grade")    return rejectGrade(dataId);
+    if (action === "edit-grade")      return openEditGrade(dataId);
+    if (action === "delete-grade")    return deleteGrade(dataId);
     if (action === "approve-withdraw") return approveWithdraw(dataId);
-    if (action === "reject-withdraw") return rejectWithdraw(dataId);
+    if (action === "reject-withdraw")  return rejectWithdraw(dataId);
     if (action === "claim-goal") {
       var gci = data.goals.findIndex(function (x) { return x.id === dataId; });
       if (gci >= 0) return claimGoal(gci);
@@ -907,7 +887,7 @@ function bindEvents() {
     if (action === "edit-goal") {
       var g = data.goals.find(function (x) { return x.id === dataId; });
       if (!g) return showToast("Цель не найдена");
-      document.getElementById("goalEditId").value = String(g.id);
+      document.getElementById("goalEditId").value = g.id;
       document.getElementById("goalTitle").value = g.title;
       document.getElementById("goalPrice").value = g.price;
       document.getElementById("goalDeadline").value = g.deadline || "";
@@ -924,24 +904,12 @@ function bindEvents() {
     }
     var pendingCb = e.target.closest("[data-pending-id]");
     if (pendingCb) {
-      togglePendingSelection(Number(pendingCb.dataset.pendingId));
+      togglePendingSelection(pendingCb.dataset.pendingId);
       return;
     }
-    if (e.target.id === "gradeFilterSubject") {
-      gradeFilter.subject = e.target.value;
-      renderGrades(currentRole === "parent");
-      return;
-    }
-    if (e.target.id === "gradeFilterValue") {
-      gradeFilter.value = e.target.value;
-      renderGrades(currentRole === "parent");
-      return;
-    }
-    if (e.target.id === "gradeFilterPeriod") {
-      gradeFilter.period = e.target.value;
-      renderGrades(currentRole === "parent");
-      return;
-    }
+    if (e.target.id === "gradeFilterSubject") { gradeFilter.subject = e.target.value; renderGrades(currentRole === "parent"); return; }
+    if (e.target.id === "gradeFilterValue")   { gradeFilter.value   = e.target.value; renderGrades(currentRole === "parent"); return; }
+    if (e.target.id === "gradeFilterPeriod")  { gradeFilter.period  = e.target.value; renderGrades(currentRole === "parent"); return; }
   });
 
   var elRepeat = document.getElementById("choreRepeat");
@@ -1000,7 +968,7 @@ function bindEvents() {
       saveData();
       closeModal();
       var msg = v === "active" ? "Гуфи активен 🐙"
-              : v === "quiet" ? "Гуфи теперь тихий"
+              : v === "quiet"  ? "Гуфи теперь тихий"
               : "Гуфи выключен";
       showToast(msg);
     });
@@ -1016,10 +984,10 @@ function bindEvents() {
     profileForm.addEventListener("submit", function (e) {
       e.preventDefault();
       var name = document.getElementById("profileName").value.trim().slice(0, 20);
-      var raw = document.getElementById("profileAge").value.trim();
-      var cls = document.getElementById("profileClass").value.trim().slice(0, 6);
-      var bd = document.getElementById("profileBirthday").value || "";
-      var age = "";
+      var raw  = document.getElementById("profileAge").value.trim();
+      var cls  = document.getElementById("profileClass").value.trim().slice(0, 6);
+      var bd   = document.getElementById("profileBirthday").value || "";
+      var age  = "";
       if (raw) {
         var a = toInt(raw);
         if (Number.isInteger(a) && a > 0 && a <= 120) age = String(a);
@@ -1036,13 +1004,13 @@ function bindEvents() {
   if (choreForm) {
     choreForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      var id = Number(document.getElementById("choreEditId").value);
-      var title = document.getElementById("choreTitle").value.trim();
-      var desc = document.getElementById("choreDescription").value.trim();
+      var id     = document.getElementById("choreEditId").value;
+      var title  = document.getElementById("choreTitle").value.trim();
+      var desc   = document.getElementById("choreDescription").value.trim();
       var reward = toInt(document.getElementById("choreReward").value);
       var repeat = document.getElementById("choreRepeat").value;
-      var days = repeat === "custom" ? editingChoreDays.slice() : [];
-      var mpd = toInt(document.getElementById("choreMaxPerDay").value);
+      var days   = repeat === "custom" ? editingChoreDays.slice() : [];
+      var mpd    = toInt(document.getElementById("choreMaxPerDay").value);
       if (!Number.isInteger(mpd) || mpd < 1) mpd = 1;
 
       if (!title) return showToast("Введите название");
@@ -1071,9 +1039,9 @@ function bindEvents() {
   if (gradeForm) {
     gradeForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      var editId = Number(document.getElementById("gradeEditId").value) || 0;
+      var editId = document.getElementById("gradeEditId").value || "";
       var sub = getSubjectValue("#gradeSubjectSelect", "#gradeSubjectCustom");
-      var v = toInt(document.getElementById("gradeValue").value);
+      var v   = toInt(document.getElementById("gradeValue").value);
       if (!sub) return showToast("Выберите предмет");
       if (!Number.isInteger(v) || v < 2 || v > 10) return showToast("Оценка 2–10");
       var newPay = paymentForGrade(v, sub);
@@ -1087,8 +1055,7 @@ function bindEvents() {
 
         if (oldPenalty < 0) {
           addTransaction("Отмена штрафа за оценку: " + g.subject, {
-            points: -oldPenalty,
-            affectLevel: true
+            points: -oldPenalty, affectLevel: true
           });
         }
 
@@ -1098,17 +1065,15 @@ function bindEvents() {
         }
 
         g.subject = sub;
-        g.value = v;
+        g.value   = v;
         g.payment = newPay;
         g.penalty = newPenaltyActual;
-        g.ts = Date.now();
+        g.ts      = Date.now();
 
         if (diff) addTransaction("Изменение оценки: " + sub, { byn: diff });
         if (newPenaltyActual) {
           addTransaction("Штраф за оценку " + v + ": " + sub, {
-            points: newPenaltyActual,
-            affectLevel: true,
-            capAtZero: true
+            points: newPenaltyActual, affectLevel: true, capAtZero: true
           });
         }
 
@@ -1126,20 +1091,14 @@ function bindEvents() {
           newPenaltyActual2 = -Math.min(Math.abs(newPenaltyTheoretical), Math.max(0, data.points));
         }
         data.grades.unshift({
-          id: uniqueId(),
-          subject: sub,
-          value: v,
-          payment: newPay,
-          penalty: newPenaltyActual2,
-          date: today(),
-          ts: Date.now()
+          id: uniqueId(), subject: sub, value: v,
+          payment: newPay, penalty: newPenaltyActual2,
+          date: today(), ts: Date.now()
         });
         if (newPay) addTransaction("Оценка " + v + ": " + sub, { byn: newPay });
         if (newPenaltyActual2) {
           addTransaction("Штраф за оценку " + v + ": " + sub, {
-            points: newPenaltyActual2,
-            affectLevel: true,
-            capAtZero: true
+            points: newPenaltyActual2, affectLevel: true, capAtZero: true
           });
         }
         closeModal();
@@ -1159,7 +1118,7 @@ function bindEvents() {
     suggestForm.addEventListener("submit", function (e) {
       e.preventDefault();
       var sub = getSubjectValue("#suggestSubjectSelect", "#suggestSubjectCustom");
-      var v = toInt(document.getElementById("suggestValue").value);
+      var v   = toInt(document.getElementById("suggestValue").value);
       if (!sub) return showToast("Выберите предмет");
       if (!Number.isInteger(v) || v < 2 || v > 10) return showToast("Оценка 2–10");
       data.gradeRequests.push({ id: uniqueId(), subject: sub, value: v, date: today() });
@@ -1175,13 +1134,13 @@ function bindEvents() {
     goalForm.addEventListener("submit", function (e) {
       e.preventDefault();
       var rawId = document.getElementById("goalEditId").value;
-      var t = document.getElementById("goalTitle").value.trim();
-      var pr = toInt(document.getElementById("goalPrice").value);
-      var dl = document.getElementById("goalDeadline").value || "";
+      var t   = document.getElementById("goalTitle").value.trim();
+      var pr  = toInt(document.getElementById("goalPrice").value);
+      var dl  = document.getElementById("goalDeadline").value || "";
       var imp = !!document.getElementById("goalImportant").checked;
       if (!t || !Number.isInteger(pr) || pr < 1) return showToast("Проверьте данные");
       if (rawId !== "") {
-        var g = data.goals.find(function (x) { return x.id === Number(rawId); });
+        var g = data.goals.find(function (x) { return x.id === rawId; });
         if (g) {
           g.title = t; g.price = pr; g.deadline = dl;
           g.important = imp; g.notifiedReady = false;
@@ -1201,9 +1160,9 @@ function bindEvents() {
   if (commentForm) {
     commentForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      var id = Number(document.getElementById("commentCompletionId").value);
+      var id   = document.getElementById("commentCompletionId").value;
       var mode = document.getElementById("commentMode").value || "approve";
-      var c = document.getElementById("commentText").value.trim();
+      var c    = document.getElementById("commentText").value.trim();
       closeModal();
       if (mode === "reject") rejectChoreWithComment(id, c);
       else approveChoreWithComment(id, c);

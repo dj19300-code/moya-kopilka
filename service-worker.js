@@ -1,6 +1,6 @@
 "use strict";
 
-var CACHE_NAME = "moya-kopilka-v15";
+var CACHE_NAME = "moya-kopilka-v16";
 
 var URLS_TO_CACHE = [
   "./",

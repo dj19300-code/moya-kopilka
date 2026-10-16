@@ -12,6 +12,8 @@ function paintStartScreen() {
   if (c1) c1.innerHTML = piggyCoinSvg();
   var c2 = document.getElementById("piggyCoin2");
   if (c2) c2.innerHTML = piggyCoinSvg();
+  var c3 = document.getElementById("piggyCoin3");
+  if (c3) c3.innerHTML = piggyCoinSvg();
 
   var gf = document.getElementById("guffyFull");
   if (gf) gf.innerHTML = guffyFullSvg(getGuffyEmotion());
@@ -19,6 +21,7 @@ function paintStartScreen() {
   renderStartGreeting();
   renderStartSummary();
   renderStartChildBadge();
+  renderStartProgress();
 }
 
 function renderStartGreeting() {
@@ -59,6 +62,46 @@ function renderStartChildBadge() {
   } else {
     el.classList.add("hidden");
   }
+}
+
+function renderStartProgress() {
+  var wrap = document.getElementById("startProgress");
+  if (!wrap) return;
+
+  if (!data || !data.totalEarnedPoints || data.totalEarnedPoints <= 0) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+
+  var lvl   = getLevel(data.totalEarnedPoints);
+  var next  = getNextLevel(data.totalEarnedPoints);
+
+  var dragonEl = document.getElementById("startProgressDragon");
+  if (dragonEl) dragonEl.innerHTML = dragonSvg(lvl.key);
+
+  var lvlEl = document.getElementById("startProgressLevel");
+  if (lvlEl) lvlEl.textContent = lvl.name;
+
+  var nextEl = document.getElementById("startProgressNext");
+  var fillEl = document.getElementById("startProgressFill");
+  var barEl  = wrap.querySelector(".start-progress__bar");
+
+  if (!next) {
+    if (nextEl) nextEl.textContent = "Максимум достигнут 🎉";
+    if (fillEl) fillEl.style.width = "100%";
+    if (barEl)  barEl.classList.add("is-max");
+    return;
+  }
+
+  var done  = data.totalEarnedPoints - lvl.min;
+  var total = next.min - lvl.min;
+  var pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  if (nextEl) nextEl.textContent =
+    "до «" + next.name + "» — " + (total - done) + " " + pluralPoints(total - done);
+  if (fillEl) fillEl.style.width = pct + "%";
+  if (barEl)  barEl.classList.remove("is-max");
 }
 
 function renderChildHero() {

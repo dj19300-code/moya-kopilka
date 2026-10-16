@@ -1,10 +1,14 @@
 "use strict";
 
 /* ============================================================
-   Точка входа — только порядок инициализации
+   Точка входа — порядок инициализации
    ============================================================ */
 
-log("Моя копилка v59 загружена (модульная структура)");
+log("Моя копилка v60 загружена (модульная структура + разбитый state)");
+
+/* data нужно инициализировать до первого render,
+   loadFromLocalStorage объявлен в storage.js — он уже загружен. */
+data = loadFromLocalStorage();
 
 initTheme();
 paintStaticIcons();
@@ -18,8 +22,9 @@ initPullToRefresh();
 initHotkeys();
 initSearch();
 initPush();
+initFirebase();
 
-// Однократная проверка бейджей при старте
+/* Однократная проверка бейджей при старте */
 setTimeout(function () {
   if (typeof checkBadges === "function") {
     try { checkBadges(); } catch (e) { logWarn("checkBadges error:", e); }

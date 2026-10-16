@@ -1,8 +1,11 @@
 "use strict";
 
 /* ============================================================
-   Данные, состояние, Firebase
+   Данные и логика: структура, normalize, транзакции,
+   уровни, уведомления, утилитарные рендер-хелперы
    ============================================================ */
+
+/* ---------- Структура данных ---------- */
 
 function createInitialData() {
   return {
@@ -143,251 +146,21 @@ function normalize(raw) {
   };
 }
 
-// --- Состояние приложения ---
+/* ---------- Состояние ---------- */
+
+var data = null; // заполнится из app.js после загрузки всех скриптов
 var currentRole = "";
-var firebaseRef = null;
-var firebaseReady = false;
 var treasureCheckedThisSession = false;
 var editingChoreDays = [];
 var pendingPhotoDataUrl = "";
 var shownApprovalIds = [];
 var pendingProfileAvatar = "👧";
 var currentDay = today();
-var lastSyncedData = null;
 var searchState = { items: [], activeIndex: -1 };
 var pendingSelectionIds = [];
 var gradeFilter = { subject: "all", value: "all", period: "all" };
 
-var data = loadFromLocalStorage();
-
-// --- Firebase ---
-try {
-  if (typeof firebase !== "undefined" && firebase.initializeApp) {
-    firebase.initializeApp(firebaseConfig);
-    var db = firebase.database();
-
-    if (!firebase.auth || typeof firebase.auth !== "function") {
-      logWarn("Firebase Auth недоступен — офлайн-режим");
-      firebaseReady = false;
-      setSyncStatus("offline", "Офлайн · авторизация недоступна");
-      updateSyncLine("offline");
-      paintStartScreen();
-    } else {
-      firebase.auth().signInAnonymously()
-        .then(function () {
-          log("Анонимный вход выполнен");
-          firebaseRef = db.ref("families/" + FAMILY_ID);
-          firebaseReady = true;
-
-          firebaseRef.on("value", function (snap) {
-            var raw = snap.val();
-            if (raw) {
-              if (lastSyncedData) {
-                var localStr, syncStr;
-                try { localStr = JSON.stringify(data); } catch (e) { localStr = ""; }
-                try { syncStr  = JSON.stringify(lastSyncedData); } catch (e) { syncStr = ""; }
-                if (localStr !== syncStr) {
-                  logWarn("Пропускаю серверное обновление — есть несинхронизированные локальные изменения");
-                  setSyncStatus("online", "");
-                  if (typeof checkNewPendingForPush === "function") {
-                    checkNewPendingForPush(normalize(raw));
-                  }
-                  return;
-                }
-              }
-              data = normalize(raw);
-              if (typeof checkNewPendingForPush === "function") {
-                checkNewPendingForPush(data);
-              }
-            } else {
-              data = createInitialData();
-              firebaseRef.set(data);
-            }
-            lastSyncedData = JSON.parse(JSON.stringify(data));
-            try { localStore.set(STORAGE_KEY, JSON.stringify(stripPhotos(data))); } catch (e) {}
-            if (cleanupOrphanCompletions()) {
-              lastSyncedData = null;
-              saveData();
-              return;
-            }
-            setSyncStatus("online", "");
-            updateSyncLine("online");
-            paintStartScreen();
-            render();
-          }, function () {
-            setSyncStatus("offline", "Офлайн · изменения сохранятся позже");
-            updateSyncLine("offline");
-            paintStartScreen();
-            render();
-          });
-        })
-        .catch(function (error) {
-          logWarn("Ошибка анонимного входа:", error);
-          setSyncStatus("error", "Не удалось авторизоваться");
-          updateSyncLine("error");
-          paintStartScreen();
-          render();
-        });
-    }
-  } else {
-    logWarn("Firebase не загружен — офлайн");
-    paintStartScreen();
-  }
-} catch (err) {
-  logWarn("Firebase error:", err);
-  paintStartScreen();
-}
-
-function loadFromLocalStorage() {
-  var raw = localStore.get(STORAGE_KEY);
-  if (!raw) return createInitialData();
-  try { return normalize(JSON.parse(raw)); }
-  catch (e) { return createInitialData(); }
-}
-
-function stripPhotos(obj) {
-  var copy = JSON.parse(JSON.stringify(obj));
-  if (copy.completions) {
-    copy.completions.forEach(function (c) { if (c.photo) c.photo = "__removed__"; });
-  }
-  return copy;
-}
-
-function computeDiff(newData, oldData) {
-  var diff = {};
-  DATA_KEYS.forEach(function (k) {
-    var nv, ov;
-    try { nv = JSON.stringify(newData[k]); } catch (e) { nv = ""; }
-    try { ov = oldData ? JSON.stringify(oldData[k]) : ""; } catch (e) { ov = ""; }
-    if (!oldData || nv !== ov) diff[k] = newData[k];
-  });
-  return diff;
-}
-
-function trimData() {
-  var LIMIT_TX = 500;
-  var LIMIT_COMPLETIONS = 400;
-  var LIMIT_GRADES = 300;
-  var LIMIT_WITHDRAW = 100;
-
-  if (data.transactions.length > LIMIT_TX) {
-    data.transactions = data.transactions.slice(0, LIMIT_TX);
-  }
-  if (data.completions.length > LIMIT_COMPLETIONS) {
-    var pending = [], rest = [];
-    data.completions.forEach(function (c) {
-      if (c.status === "pending") pending.push(c);
-      else rest.push(c);
-    });
-    rest.sort(function (a, b) { return (b.approvedAt || 0) - (a.approvedAt || 0); });
-    data.completions = pending.concat(rest).slice(0, LIMIT_COMPLETIONS);
-  }
-  if (data.grades.length > LIMIT_GRADES) {
-    data.grades = data.grades.slice(0, LIMIT_GRADES);
-  }
-  if (data.withdrawRequests.length > LIMIT_WITHDRAW) {
-    data.withdrawRequests = data.withdrawRequests.slice(0, LIMIT_WITHDRAW);
-  }
-}
-
-function saveData() {
-  trimData();
-  try {
-    var forLocal = stripPhotos(data);
-    localStore.set(STORAGE_KEY, JSON.stringify(forLocal));
-  } catch (e) {}
-
-  if (firebaseReady && firebaseRef) {
-    var diff = computeDiff(data, lastSyncedData);
-    if (Object.keys(diff).length > 0) {
-      updateSyncLine("saving");
-      firebaseRef.update(diff)
-        .then(function () {
-          lastSyncedData = JSON.parse(JSON.stringify(data));
-          setSyncStatus("online", "");
-          updateSyncLine("online");
-        })
-        .catch(function () {
-          setSyncStatus("offline", "Не удалось сохранить");
-          updateSyncLine("offline");
-        });
-    }
-  }
-  paintStartScreen();
-  render();
-}
-
-function setSyncStatus(state, text) {
-  var banner = document.getElementById("syncBanner");
-  var label  = document.getElementById("syncText");
-  if (!banner || !label) return;
-  banner.classList.remove("is-visible", "is-offline", "is-error");
-  if (state === "online" || !state) return;
-  banner.classList.add("is-visible");
-  if (state === "offline") banner.classList.add("is-offline");
-  if (state === "error")   banner.classList.add("is-error");
-  label.textContent = text || "";
-}
-
-function updateSyncLine(state) {
-  var line = document.getElementById("syncLine");
-  if (!line) return;
-  line.classList.remove("is-saving", "is-online", "is-offline", "is-error");
-  if (state === "saving") {
-    line.classList.add("is-saving");
-  } else if (state === "online") {
-    line.classList.add("is-online");
-    setTimeout(function () { line.classList.remove("is-online"); }, 1500);
-  } else if (state === "offline") {
-    line.classList.add("is-offline");
-  } else if (state === "error") {
-    line.classList.add("is-error");
-  }
-}
-
-function paintStaticIcons() {
-  var ids = {
-    iconBell: svgBell(),
-    iconChecklist: svgChecklist(),
-    iconDiary: svgDiary(),
-    iconTarget: svgTarget(),
-    iconExchange: svgExchange(),
-    iconBook: svgBook(),
-    iconMoney: svgMoney()
-  };
-  Object.keys(ids).forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.innerHTML = ids[id];
-  });
-}
-
-function paintSummaryDeco() {
-  var em = getGuffyEmotion();
-  var b = document.getElementById("balanceDeco");
-  if (b) b.innerHTML = guffyWithPiggy(em);
-  var p = document.getElementById("pointsDeco");
-  if (p) p.innerHTML = guffyWithCoin(em);
-  var g = document.getElementById("goalDeco");
-  if (g) g.innerHTML = guffyWithFlag(em);
-}
-
-function getGuffyEmotion() {
-  if (!data || (data.guffyMode !== "active")) return "normal";
-  var h = new Date().getHours();
-  if (h >= GUFFY_NIGHT_START || h < GUFFY_NIGHT_END) return "sleeping";
-  var ts = today();
-  if (data.completions.some(function (c) { return c.status === "approved" && c.date === ts; })) return "happy";
-  if (data.completions.some(function (c) { return c.status === "pending"  && c.date === ts; })) return "thinking";
-  return "normal";
-}
-
-function guffyReplicasOn() {
-  return data && data.guffyMode === "active";
-}
-
-function getDisplayName() {
-  return (data.profile && data.profile.name || "").trim();
-}
+/* ---------- Уведомления и транзакции ---------- */
 
 function addNotification(forRole, text, icon) {
   if (!text) return;
@@ -402,147 +175,10 @@ function addNotification(forRole, text, icon) {
   }
 }
 
-function getLevel(v) {
-  var lvl = LEVELS[0];
-  for (var i = 0; i < LEVELS.length; i++) {
-    if (v >= LEVELS[i].min) lvl = LEVELS[i];
-    else break;
-  }
-  return lvl;
-}
-function getNextLevel(v) {
-  for (var i = 0; i < LEVELS.length; i++) {
-    if (v < LEVELS[i].min) return LEVELS[i];
-  }
-  return null;
-}
-function checkLevelUp() {
-  var lvl = getLevel(data.totalEarnedPoints);
-  if (data.lastLevel !== lvl.name) {
-    var prevIdx = -1, currIdx = -1;
-    for (var i = 0; i < LEVELS.length; i++) {
-      if (LEVELS[i].name === data.lastLevel) prevIdx = i;
-      if (LEVELS[i].name === lvl.name)     currIdx = i;
-    }
-    if (currIdx > prevIdx) {
-      addNotification("child", "Новый уровень: " + lvl.name + "!", "🐉");
-      setTimeout(function () {
-        showToast("🐉 Новый уровень: " + lvl.name + "!", "levelup");
-        spawnConfetti(24);
-      }, 400);
-    }
-    data.lastLevel = lvl.name;
-  }
-}
-function checkGoalsReady() {
-  data.goals.forEach(function (g) {
-    if (!g.notifiedReady && data.points >= g.price) {
-      g.notifiedReady = true;
-      addNotification("child", "Цель «" + g.title + "» достигнута!", "🎯");
-    }
-  });
-}
-
-/* ---------- Стрик (серия дней подряд) ---------- */
-function updateStreak() {
-  var ts = today();
-  if (data.streakLastDate === ts) return;
-
-  var yest = new Date();
-  yest.setDate(yest.getDate() - 1);
-  var yestStr = formatDate(yest);
-
-  if (data.streakLastDate === yestStr) {
-    data.streak = (data.streak || 0) + 1;
-  } else {
-    data.streak = 1;
-  }
-  data.streakLastDate = ts;
-  if ((data.streak || 0) > (data.streakBest || 0)) {
-    data.streakBest = data.streak;
-  }
-}
-
-/* ---------- Бейджи ---------- */
-function checkBadges(opts) {
-  opts = opts || {};
-  var silent = !!opts.silent;
-
-  if (!Array.isArray(data.badges)) data.badges = [];
-  if (typeof BADGES === "undefined" || !BADGES.length) return 0;
-
-  var since = data.badgesResetAt || 0;
-  var newOnes = [];
-  BADGES.forEach(function (b) {
-    if (data.badges.indexOf(b.id) >= 0) return;
-    var ok = false;
-    try { ok = !!b.check(data, since); } catch (e) { ok = false; }
-    if (ok) {
-      data.badges.push(b.id);
-      newOnes.push(b);
-    }
-  });
-
-  if (!silent) {
-    newOnes.forEach(function (b, i) {
-      addNotification("child", "🏆 Новое достижение: «" + b.title + "»", "🏆");
-      setTimeout(function () {
-        showToast(b.icon + " " + b.title, "levelup");
-        spawnConfetti(24);
-      }, 600 + i * 900);
-    });
-  }
-  return newOnes.length;
-}
-
-function isChoreActiveToday(c) {
-  var r = c.repeat || "daily";
-  if (r === "daily") return true;
-  var day = new Date().getDay();
-  if (r === "weekdays") return day >= 1 && day <= 5;
-  if (r === "weekend")  return day === 0 || day === 6;
-  if (r === "custom") {
-    if (!Array.isArray(c.days) || !c.days.length) return true;
-    return c.days.indexOf(day) >= 0;
-  }
-  if (r === "once") {
-    return !data.completions.some(function (x) { return x.choreId === c.id && x.status === "approved"; });
-  }
-  return true;
-}
-function countToday(id) {
-  return data.completions.filter(function (c) {
-    return c.choreId === id && c.date === today() && c.status !== "rejected";
-  }).length;
-}
-function countTodayByStatus(id, s) {
-  return data.completions.filter(function (c) {
-    return c.choreId === id && c.date === today() && c.status === s;
-  }).length;
-}
-
-function checkDailyTreasure() {
-  if (treasureCheckedThisSession) return;
-  treasureCheckedThisSession = true;
-  var ts = today();
-  if (data.lastTreasureDate === ts) return;
-  if (Math.random() < 0.35) {
-    var r = TREASURE_REWARDS[Math.floor(Math.random() * TREASURE_REWARDS.length)];
-    data.lastTreasureDate = ts;
-    addTransaction("💰 " + r.text.replace(/\+/g, "").trim(), { points: r.points });
-    checkLevelUp();
-    checkGoalsReady();
-    saveData();
-    setTimeout(function () {
-      showToast("💰 " + r.text, "reward");
-      spawnConfetti(22);
-    }, 600);
-  } else {
-    data.lastTreasureDate = ts;
-    saveData();
-  }
-}
-
+/* Центральная точка начисления/списания.
+   capAtZero — не уходить в минус.
+   affectLevel — штраф уменьшает totalEarnedPoints (сброс уровня).
+   Стрик и бейджи не запускаются для «корректирующих» операций. */
 function addTransaction(d, opts) {
   opts = opts || {};
   var byn    = opts.byn || 0;
@@ -583,10 +219,156 @@ function addTransaction(d, opts) {
   }
 }
 
+/* ---------- Уровни ---------- */
+
+function getLevel(v) {
+  var lvl = LEVELS[0];
+  for (var i = 0; i < LEVELS.length; i++) {
+    if (v >= LEVELS[i].min) lvl = LEVELS[i];
+    else break;
+  }
+  return lvl;
+}
+
+function getNextLevel(v) {
+  for (var i = 0; i < LEVELS.length; i++) {
+    if (v < LEVELS[i].min) return LEVELS[i];
+  }
+  return null;
+}
+
+function checkLevelUp() {
+  var lvl = getLevel(data.totalEarnedPoints);
+  if (data.lastLevel !== lvl.name) {
+    var prevIdx = -1, currIdx = -1;
+    for (var i = 0; i < LEVELS.length; i++) {
+      if (LEVELS[i].name === data.lastLevel) prevIdx = i;
+      if (LEVELS[i].name === lvl.name)     currIdx = i;
+    }
+    if (currIdx > prevIdx) {
+      addNotification("child", "Новый уровень: " + lvl.name + "!", "🐉");
+      setTimeout(function () {
+        showToast("🐉 Новый уровень: " + lvl.name + "!", "levelup");
+        spawnConfetti(24);
+      }, 400);
+    }
+    data.lastLevel = lvl.name;
+  }
+}
+
+function checkGoalsReady() {
+  data.goals.forEach(function (g) {
+    if (!g.notifiedReady && data.points >= g.price) {
+      g.notifiedReady = true;
+      addNotification("child", "Цель «" + g.title + "» достигнута!", "🎯");
+    }
+  });
+}
+
+/* ---------- Прочее: имя, эмоции Гуфи, декорации ---------- */
+
+function getDisplayName() {
+  return (data.profile && data.profile.name || "").trim();
+}
+
+function getGuffyEmotion() {
+  if (!data || (data.guffyMode !== "active")) return "normal";
+  var h = new Date().getHours();
+  if (h >= GUFFY_NIGHT_START || h < GUFFY_NIGHT_END) return "sleeping";
+  var ts = today();
+  if (data.completions.some(function (c) { return c.status === "approved" && c.date === ts; })) return "happy";
+  if (data.completions.some(function (c) { return c.status === "pending"  && c.date === ts; })) return "thinking";
+  return "normal";
+}
+
+function guffyReplicasOn() {
+  return data && data.guffyMode === "active";
+}
+
+function paintStaticIcons() {
+  var ids = {
+    iconBell: svgBell(),
+    iconChecklist: svgChecklist(),
+    iconDiary: svgDiary(),
+    iconTarget: svgTarget(),
+    iconExchange: svgExchange(),
+    iconBook: svgBook(),
+    iconMoney: svgMoney()
+  };
+  Object.keys(ids).forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = ids[id];
+  });
+}
+
+function paintSummaryDeco() {
+  var em = getGuffyEmotion();
+  var b = document.getElementById("balanceDeco");
+  if (b) b.innerHTML = guffyWithPiggy(em);
+  var p = document.getElementById("pointsDeco");
+  if (p) p.innerHTML = guffyWithCoin(em);
+  var g = document.getElementById("goalDeco");
+  if (g) g.innerHTML = guffyWithFlag(em);
+}
+
+/* ---------- Задания: подсчёты и активность ---------- */
+
+function isChoreActiveToday(c) {
+  var r = c.repeat || "daily";
+  if (r === "daily") return true;
+  var day = new Date().getDay();
+  if (r === "weekdays") return day >= 1 && day <= 5;
+  if (r === "weekend")  return day === 0 || day === 6;
+  if (r === "custom") {
+    if (!Array.isArray(c.days) || !c.days.length) return true;
+    return c.days.indexOf(day) >= 0;
+  }
+  if (r === "once") {
+    return !data.completions.some(function (x) { return x.choreId === c.id && x.status === "approved"; });
+  }
+  return true;
+}
+
+function countToday(id) {
+  return data.completions.filter(function (c) {
+    return c.choreId === id && c.date === today() && c.status !== "rejected";
+  }).length;
+}
+
+function countTodayByStatus(id, s) {
+  return data.completions.filter(function (c) {
+    return c.choreId === id && c.date === today() && c.status === s;
+  }).length;
+}
+
 function cleanupOrphanCompletions() {
   var choreIds = {};
   data.chores.forEach(function (c) { choreIds[c.id] = true; });
   var before = data.completions.length;
   data.completions = data.completions.filter(function (c) { return choreIds[c.choreId]; });
   return data.completions.length !== before;
+}
+
+/* ---------- Ежедневное «сокровище» (рандомный бонус) ---------- */
+
+function checkDailyTreasure() {
+  if (treasureCheckedThisSession) return;
+  treasureCheckedThisSession = true;
+  var ts = today();
+  if (data.lastTreasureDate === ts) return;
+  if (Math.random() < 0.35) {
+    var r = TREASURE_REWARDS[Math.floor(Math.random() * TREASURE_REWARDS.length)];
+    data.lastTreasureDate = ts;
+    addTransaction("💰 " + r.text.replace(/\+/g, "").trim(), { points: r.points });
+    checkLevelUp();
+    checkGoalsReady();
+    saveData();
+    setTimeout(function () {
+      showToast("💰 " + r.text, "reward");
+      spawnConfetti(22);
+    }, 600);
+  } else {
+    data.lastTreasureDate = ts;
+    saveData();
+  }
 }

@@ -26,8 +26,11 @@
     <div class="piggy-scene" id="piggyScene">
       <div class="piggy-coin" id="piggyCoin1"></div>
       <div class="piggy-coin piggy-coin--2" id="piggyCoin2"></div>
+      <div class="piggy-coin piggy-coin--3" id="piggyCoin3"></div>
       <div class="piggy-svg" id="piggySvg"></div>
       <div class="guffy-full" id="guffyFull"></div>
+      <span class="sparkle"></span>
+      <span class="sparkle"></span>
       <span class="sparkle"></span>
       <span class="sparkle"></span>
       <span class="sparkle"></span>
@@ -37,6 +40,20 @@
     <div class="welcome-greeting" id="welcomeGreeting">Привет ✨</div>
     <h1 class="welcome-title">Моя копилка</h1>
     <p class="welcome-tagline">Баллы, оценки и семейные задания</p>
+
+    <!-- Прогресс до следующего уровня -->
+    <div class="start-progress hidden" id="startProgress">
+      <div class="start-progress__row">
+        <div class="start-progress__dragon" id="startProgressDragon"></div>
+        <div class="start-progress__body">
+          <div class="start-progress__level" id="startProgressLevel">Яйцо</div>
+          <div class="start-progress__next" id="startProgressNext">до «Дракончик» — 200 баллов</div>
+        </div>
+      </div>
+      <div class="start-progress__bar">
+        <div class="start-progress__fill" id="startProgressFill"></div>
+      </div>
+    </div>
 
     <div class="role-grid">
       <button class="role-card role-card--child" id="childLogin" type="button">
@@ -64,7 +81,6 @@
 
 <div id="app" class="hidden">
   <main class="container">
-    <!-- Баннер ребёнка -->
     <section class="hero child-hero" id="childHero" style="display:none">
       <div class="hero__deco"></div>
       <div class="child-hero__avatar-wrap">
@@ -103,7 +119,6 @@
       </div>
     </section>
 
-    <!-- Баннер родителя -->
     <section class="hero parent-hero" id="parentHero" style="display:none">
       <div class="hero__deco"></div>
       <div class="parent-hero__guffy" id="parentHeroGuffy"></div>
@@ -255,7 +270,6 @@
     </section>
   </main>
 
-  <!-- Плавающее нижнее меню (только мобилка) -->
   <nav class="bottom-nav" id="bottomNav">
     <button class="bottom-nav__btn" type="button" data-nav="top">
       <span class="bottom-nav__icon">🏠</span>
@@ -279,7 +293,6 @@
     </button>
   </nav>
 
-  <!-- FAB с быстрыми действиями (только родитель) -->
   <div class="fab-wrap parent-only" id="fabWrap">
     <div class="fab-actions">
       <button class="fab-action" type="button" data-fab="chore">
@@ -310,7 +323,6 @@
   </svg>
 </button>
 
-<!-- Оверлей поиска (Ctrl+K) -->
 <div class="search-overlay hidden" id="searchOverlay">
   <div class="search-modal">
     <div class="search-modal__input-wrap">
@@ -699,8 +711,11 @@
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/icons.js"></script>
-<script src="js/push.js"></script>
+<script src="js/badges.js"></script>
 <script src="js/state.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/push.js"></script>
 <script src="js/render.js"></script>
 <script src="js/actions.js"></script>
 <script src="js/ui.js"></script>

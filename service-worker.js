@@ -1,7 +1,6 @@
 "use strict";
 
-// Меняй версию, когда хочешь принудительно обновить кэш
-var CACHE_NAME = "moya-kopilka-v14";
+var CACHE_NAME = "moya-kopilka-v15";
 
 var URLS_TO_CACHE = [
   "./",
@@ -13,8 +12,11 @@ var URLS_TO_CACHE = [
   "./js/config.js",
   "./js/utils.js",
   "./js/icons.js",
-  "./js/push.js",
+  "./js/badges.js",
   "./js/state.js",
+  "./js/firebase.js",
+  "./js/storage.js",
+  "./js/push.js",
   "./js/render.js",
   "./js/actions.js",
   "./js/ui.js",
@@ -65,8 +67,6 @@ self.addEventListener("fetch", function (event) {
       })
   );
 });
-
-/* ---------- Клик по уведомлению ---------- */
 
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
